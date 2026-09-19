@@ -3,6 +3,7 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "@/db/client";
 import * as schema from "@/db/schema";
 import { authConfig } from "@/lib/auth-config";
+import { sessionCallback } from "@/lib/session-callback";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -13,4 +14,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     verificationTokensTable: schema.verificationTokens,
   }),
   session: { strategy: "database" },
+  callbacks: {
+    session: sessionCallback,
+  },
 });
