@@ -11,11 +11,14 @@ interface RawGoogleProvider {
 }
 
 describe("authConfig", () => {
-  it("requests the minimal profile scopes (no calendar scope yet)", () => {
+  it("requests profile scopes plus read-only calendar access", () => {
     const google = authConfig.providers[0] as unknown as RawGoogleProvider;
     const scope = google.options?.authorization?.params?.scope ?? "";
     expect(scope).toContain("openid");
     expect(scope).toContain("email");
-    expect(scope).not.toContain("calendar");
+    expect(scope).toContain("profile");
+    expect(scope).toContain(
+      "https://www.googleapis.com/auth/calendar.readonly",
+    );
   });
 });
