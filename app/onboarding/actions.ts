@@ -1,5 +1,3 @@
-"use server";
-
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -22,6 +20,7 @@ export function validateUsername(
 }
 
 export async function setUsername(formData: FormData) {
+  "use server";
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
