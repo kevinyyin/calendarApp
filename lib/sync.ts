@@ -1,6 +1,6 @@
 import { db } from "@/db/client";
 import { events, googleCalendars } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { GoogleEvent } from "@/lib/google-calendar-events";
 import { fetchAllGoogleEvents } from "@/lib/google-calendar-events";
 
@@ -27,9 +27,18 @@ export async function upsertEventsFromGoogle(
   for (const event of googleEvents) {
     const row = toEventRow(googleCalendarRowId, event);
     if (row.status === "cancelled") {
+      // Scoped to this calendar row, not just googleEventId: the whole
+      // reason for the composite unique index is that google_event_id is
+      // only unique per calendar, so deleting by googleEventId alone could
+      // remove another calendar's event that happens to share the same id.
       await db
         .delete(events)
-        .where(eq(events.googleEventId, row.googleEventId));
+        .where(
+          and(
+            eq(events.googleCalendarRowId, row.googleCalendarRowId),
+            eq(events.googleEventId, row.googleEventId),
+          ),
+        );
       continue;
     }
     await db
