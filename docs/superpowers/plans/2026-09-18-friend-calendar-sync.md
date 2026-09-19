@@ -815,7 +815,7 @@ git commit -m "feat: encrypt OAuth tokens at rest and request calendar.readonly 
 ### Task 7: Google Calendar API client + calendar list/selection
 
 **Files:**
-- Create: `lib/google-calendar.ts`, `db/schema-calendars.ts`, `app/calendars/page.tsx`, `app/calendars/actions.ts`
+- Create: `lib/google-calendar.ts`, `app/calendars/page.tsx`, `app/calendars/actions.ts`
 - Modify: `db/schema.ts` (re-export calendars table), `lib/auth.ts` (expose decrypted access token helper)
 - Test: `tests/google-calendar.test.ts`
 
@@ -2948,9 +2948,13 @@ Create `tests/realtime-merged-view.test.tsx`:
 import { describe, it, expect } from "vitest";
 import { mergeIncomingEvent } from "@/components/RealtimeMergedView";
 
+const calendarMeta = {
+  "cal-1": { personUserId: "friend-1", personLabel: "Alice", color: "#111" },
+};
+
 describe("mergeIncomingEvent", () => {
-  it("adds a new event to the list", () => {
-    const result = mergeIncomingEvent([], {
+  it("adds a new event to the list when its calendar is known", () => {
+    const result = mergeIncomingEvent([], calendarMeta, {
       id: "e1",
       title: "New meeting",
       startAt: "2026-09-18T09:00:00Z",
@@ -2958,13 +2962,27 @@ describe("mergeIncomingEvent", () => {
       googleCalendarRowId: "cal-1",
     });
     expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      personUserId: "friend-1",
+      personLabel: "Alice",
+      color: "#111",
+      title: "New meeting",
+    });
   });
 
   it("replaces an existing event with the same id", () => {
     const existing = [
-      { id: "e1", title: "Old title", startAt: "2026-09-18T09:00:00Z", endAt: "2026-09-18T09:30:00Z", googleCalendarRowId: "cal-1" },
+      {
+        id: "e1",
+        personUserId: "friend-1",
+        personLabel: "Alice",
+        color: "#111",
+        title: "Old title",
+        startAt: new Date("2026-09-18T09:00:00Z"),
+        endAt: new Date("2026-09-18T09:30:00Z"),
+      },
     ];
-    const result = mergeIncomingEvent(existing, {
+    const result = mergeIncomingEvent(existing, calendarMeta, {
       id: "e1",
       title: "Updated title",
       startAt: "2026-09-18T09:00:00Z",
@@ -2973,6 +2991,17 @@ describe("mergeIncomingEvent", () => {
     });
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe("Updated title");
+  });
+
+  it("ignores an incoming event for a calendar not in the known-metadata map", () => {
+    const result = mergeIncomingEvent([], calendarMeta, {
+      id: "e2",
+      title: "Unknown calendar's event",
+      startAt: "2026-09-18T09:00:00Z",
+      endAt: "2026-09-18T09:30:00Z",
+      googleCalendarRowId: "cal-unrelated",
+    });
+    expect(result).toEqual([]);
   });
 });
 ```
@@ -2984,6 +3013,8 @@ Expected: FAIL — `Cannot find module '@/components/RealtimeMergedView'`.
 
 - [ ] **Step 5: Implement the realtime-aware client component**
 
+The raw Postgres row from the `events` table (via `postgres_changes`) carries only `id`, `title`, `start_at`, `end_at`, `google_calendar_row_id` — it has no `personUserId`/`personLabel`/`color`, since those live on `google_calendars`, not `events`. So the component needs a calendar-row-id → person-metadata map (built from `getVisibleCalendars`'s output) to turn a raw incoming row into the same shape `CalendarGrid`'s `MergedEvent` expects (defined in Task 14).
+
 Create `components/RealtimeMergedView.tsx`:
 ```tsx
 "use client";
@@ -2991,7 +3022,7 @@ Create `components/RealtimeMergedView.tsx`:
 import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase-client";
 
-type RawEventRow = {
+type RawIncomingRow = {
   id: string;
   title: string;
   startAt: string;
@@ -2999,19 +3030,53 @@ type RawEventRow = {
   googleCalendarRowId: string;
 };
 
-export function mergeIncomingEvent(existing: RawEventRow[], incoming: RawEventRow) {
+type CalendarMeta = {
+  personUserId: string;
+  personLabel: string;
+  color: string;
+};
+
+type MergedEventWithId = {
+  id: string;
+  personUserId: string;
+  personLabel: string;
+  color: string;
+  title: string;
+  startAt: Date;
+  endAt: Date;
+};
+
+export function mergeIncomingEvent(
+  existing: MergedEventWithId[],
+  calendarMetaByRowId: Record<string, CalendarMeta>,
+  incoming: RawIncomingRow,
+): MergedEventWithId[] {
+  const meta = calendarMetaByRowId[incoming.googleCalendarRowId];
+  if (!meta) return existing;
+
   const withoutOld = existing.filter((e) => e.id !== incoming.id);
-  return [...withoutOld, incoming];
+  return [
+    ...withoutOld,
+    {
+      id: incoming.id,
+      personUserId: meta.personUserId,
+      personLabel: meta.personLabel,
+      color: meta.color,
+      title: incoming.title,
+      startAt: new Date(incoming.startAt),
+      endAt: new Date(incoming.endAt),
+    },
+  ];
 }
 
 export function RealtimeMergedView({
   initialEvents,
-  relevantCalendarRowIds,
+  calendarMetaByRowId,
   children,
 }: {
-  initialEvents: RawEventRow[];
-  relevantCalendarRowIds: string[];
-  children: (events: RawEventRow[]) => React.ReactNode;
+  initialEvents: MergedEventWithId[];
+  calendarMetaByRowId: Record<string, CalendarMeta>;
+  children: (events: MergedEventWithId[]) => React.ReactNode;
 }) {
   const [rows, setRows] = useState(initialEvents);
 
@@ -3024,9 +3089,8 @@ export function RealtimeMergedView({
         { event: "*", schema: "public", table: "events" },
         (payload) => {
           const row = (payload.new ?? payload.old) as any;
-          if (!relevantCalendarRowIds.includes(row.google_calendar_row_id)) return;
           setRows((prev) =>
-            mergeIncomingEvent(prev, {
+            mergeIncomingEvent(prev, calendarMetaByRowId, {
               id: row.id,
               title: row.title,
               startAt: row.start_at,
@@ -3041,7 +3105,7 @@ export function RealtimeMergedView({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [relevantCalendarRowIds]);
+  }, [calendarMetaByRowId]);
 
   return <>{children(rows)}</>;
 }
@@ -3050,11 +3114,34 @@ export function RealtimeMergedView({
 - [ ] **Step 6: Run test to verify it passes**
 
 Run: `npm test -- tests/realtime-merged-view.test.tsx`
-Expected: PASS, both tests.
+Expected: PASS, all 3 tests.
 
 - [ ] **Step 7: Wire into the homepage**
 
-This step is deferred to be a small manual follow-up rather than a full rewrite of `app/page.tsx`'s server-rendered event fetch: pass `initialEvents` (mapped from `getMergedViewEvents`'s output plus each event's underlying `googleCalendarRowId`, which requires `getMergedViewEvents` in `lib/merged-view.ts` to also return `googleCalendarRowId` per event — add that field to its return objects) and `relevantCalendarRowIds` (the `id`s from `getVisibleCalendars`) into `RealtimeMergedView`, rendering `CalendarGrid` as its child function. Confirm `npm test` still passes after this wiring change since it only touches `app/page.tsx`, which has no direct unit test.
+First, modify `lib/merged-view.ts`'s `getMergedViewEvents` (Task 14) so each returned object also includes `id: row.id` and `googleCalendarRowId: row.googleCalendarRowId` (both already available on `row` from the existing `events` query — just add the two fields to the object literal being pushed into `results`). This does not change the function's existing test assertions (Task 14's test only checks `result[0].title` and `result[0].personUserId`), so no test edit is needed.
+
+Then modify `app/page.tsx` to build a `calendarMetaByRowId` map from `visibleCalendars` (keyed by each calendar's `id`, valued `{ personUserId: cal.userId, personLabel: cal.displayName, color: cal.color }`), and wrap the existing `<CalendarGrid events={events} />` with `RealtimeMergedView`:
+```tsx
+import { RealtimeMergedView } from "@/components/RealtimeMergedView";
+
+// ...inside HomePage, after events/visibleCalendars are fetched:
+const calendarMetaByRowId = Object.fromEntries(
+  visibleCalendars.map((c) => [
+    c.id,
+    { personUserId: c.userId, personLabel: c.displayName, color: c.color },
+  ]),
+);
+
+// ...replace the `<CalendarGrid events={events} />` line with:
+<RealtimeMergedView
+  initialEvents={events.map((e) => ({ ...e, id: e.id }))}
+  calendarMetaByRowId={calendarMetaByRowId}
+>
+  {(liveEvents) => <CalendarGrid events={liveEvents} />}
+</RealtimeMergedView>
+```
+
+Confirm `npm test` still passes after this wiring change (it only touches `app/page.tsx`, which has no direct unit test, plus the two-field addition to `lib/merged-view.ts`, already covered above).
 
 - [ ] **Step 8: Manually verify**
 
