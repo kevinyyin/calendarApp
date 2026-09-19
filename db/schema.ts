@@ -6,6 +6,7 @@ import {
   primaryKey,
   uuid,
   boolean,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -72,3 +73,28 @@ export const googleCalendars = pgTable("google_calendars", {
   syncToken: text("sync_token"),
   lastSyncedAt: timestamp("last_synced_at"),
 });
+
+export const events = pgTable(
+  "events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    googleCalendarRowId: uuid("google_calendar_row_id")
+      .notNull()
+      .references(() => googleCalendars.id, { onDelete: "cascade" }),
+    googleEventId: text("google_event_id").notNull(),
+    title: text("title"),
+    description: text("description"),
+    location: text("location"),
+    startAt: timestamp("start_at", { withTimezone: true }),
+    endAt: timestamp("end_at", { withTimezone: true }),
+    isAllDay: boolean("is_all_day").default(false).notNull(),
+    status: text("status").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("events_calendar_event_unique").on(
+      table.googleCalendarRowId,
+      table.googleEventId,
+    ),
+  ],
+);
