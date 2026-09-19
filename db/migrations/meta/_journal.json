@@ -8,6 +8,13 @@
       "when": 1789784056650,
       "tag": "0000_flippant_elektra",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789787874472,
+      "tag": "0001_narrow_post",
+      "breakpoints": true
     }
   ]
 }

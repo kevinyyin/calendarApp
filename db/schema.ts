@@ -5,6 +5,7 @@ import {
   integer,
   primaryKey,
   uuid,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -58,3 +59,16 @@ export const verificationTokens = pgTable(
   },
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })],
 );
+
+export const googleCalendars = pgTable("google_calendars", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  googleCalendarId: text("google_calendar_id").notNull(),
+  displayName: text("display_name").notNull(),
+  color: text("color").notNull(),
+  isShared: boolean("is_shared").default(false).notNull(),
+  syncToken: text("sync_token"),
+  lastSyncedAt: timestamp("last_synced_at"),
+});
