@@ -12,7 +12,7 @@ export function createSupabaseRealtimeToken(userId: string): string | undefined 
   const secret = process.env.SUPABASE_JWT_SECRET;
   if (!secret) {
     // Don't throw: this is called from lib/auth.ts's session callback on every
-    // session resolution, which middleware.ts wraps around every non-static
+    // session resolution, which proxy.ts wraps around every non-static
     // route. Throwing here would 500 the entire app if this env var is ever
     // missing in a deploy, just to lose the (non-essential) realtime feature.
     // Callers must treat `undefined` as "no realtime token available" —
