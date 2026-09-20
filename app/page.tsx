@@ -50,6 +50,7 @@ export default async function HomePage() {
       <RealtimeMergedView
         initialEvents={events}
         calendarMetaByRowId={calendarMetaByRowId}
+        supabaseAccessToken={session.supabaseAccessToken}
       >
         {(liveEvents) => <CalendarGrid events={liveEvents} />}
       </RealtimeMergedView>

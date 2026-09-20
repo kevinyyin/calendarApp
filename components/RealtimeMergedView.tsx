@@ -63,16 +63,18 @@ export function mergeIncomingEvent(
 export function RealtimeMergedView({
   initialEvents,
   calendarMetaByRowId,
+  supabaseAccessToken,
   children,
 }: {
   initialEvents: MergedEventWithId[];
   calendarMetaByRowId: Record<string, CalendarMeta>;
+  supabaseAccessToken?: string;
   children: (events: MergedEventWithId[]) => React.ReactNode;
 }) {
   const [rows, setRows] = useState(initialEvents);
 
   useEffect(() => {
-    const supabase = createBrowserSupabaseClient();
+    const supabase = createBrowserSupabaseClient(supabaseAccessToken);
     const channel = supabase
       .channel("events-changes")
       .on(
@@ -96,7 +98,7 @@ export function RealtimeMergedView({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [calendarMetaByRowId]);
+  }, [calendarMetaByRowId, supabaseAccessToken]);
 
   return <>{children(rows)}</>;
 }

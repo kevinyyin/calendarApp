@@ -5,11 +5,13 @@ import * as schema from "@/db/schema";
 import { authConfig } from "@/lib/auth-config";
 import { sessionCallback } from "@/lib/session-callback";
 import { withEncryptedTokens, decryptAccountTokens } from "@/lib/auth-adapter";
+import { createSupabaseRealtimeToken } from "@/lib/supabase-realtime-token";
 import { eq } from "drizzle-orm";
 
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
+    supabaseAccessToken?: string;
   }
 }
 
@@ -41,6 +43,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         withId.accessToken =
           decryptAccountTokens(account).accessToken ?? undefined;
       }
+      withId.supabaseAccessToken = createSupabaseRealtimeToken(
+        params.user.id,
+      );
       return withId;
     },
   },
