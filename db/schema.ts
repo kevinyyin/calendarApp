@@ -121,3 +121,18 @@ export const friendships = pgTable("friendships", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   respondedAt: timestamp("responded_at"),
 });
+
+export const mergedViewPrefs = pgTable(
+  "merged_view_prefs",
+  {
+    viewerId: uuid("viewer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    friendId: uuid("friend_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    isVisible: boolean("is_visible").default(true).notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.viewerId, table.friendId] })],
+);

@@ -36,6 +36,13 @@
       "when": 1789871725553,
       "tag": "0004_busy_wiccan",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789872875552,
+      "tag": "0005_smooth_tana_nile",
+      "breakpoints": true
     }
   ]
 }
