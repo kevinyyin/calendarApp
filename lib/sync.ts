@@ -69,7 +69,17 @@ function isGoogleAuthError(err: unknown): boolean {
   return code === 401 || code === 403;
 }
 
-export async function runInitialSync(calendarRowId: string, accessToken: string) {
+// Returns `true` when the sync actually completed (events upserted and
+// syncToken/lastSyncedAt written), or `false` when it bailed early because
+// the access token was expired/revoked (a 401/403). Callers that chain more
+// Google API calls or DB writes after this — e.g. registering a watch
+// channel — must check this return value: a `false` means the calendar's
+// syncToken is still whatever it was before (possibly null), so proceeding
+// as if the sync succeeded can leave the system in an inconsistent state.
+export async function runInitialSync(
+  calendarRowId: string,
+  accessToken: string,
+): Promise<boolean> {
   const [calendarRow] = await db
     .select()
     .from(googleCalendars)
@@ -88,6 +98,8 @@ export async function runInitialSync(calendarRowId: string, accessToken: string)
       .update(googleCalendars)
       .set({ syncToken: nextSyncToken, lastSyncedAt: new Date() })
       .where(eq(googleCalendars.id, calendarRowId));
+
+    return true;
   } catch (err) {
     // Google returns 401/403 when the stored access token has expired or the
     // user revoked this app's access — surface that as a reconnect prompt
@@ -95,7 +107,7 @@ export async function runInitialSync(calendarRowId: string, accessToken: string)
     if (isGoogleAuthError(err)) {
       const { markNeedsReconnect } = await import("@/lib/reconnect");
       await markNeedsReconnect(calendarRow.userId);
-      return;
+      return false;
     }
     throw err;
   }

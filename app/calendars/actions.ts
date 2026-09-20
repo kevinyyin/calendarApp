@@ -68,19 +68,28 @@ export async function toggleShareCalendar(formData: FormData) {
     );
 
   if (enable && session.accessToken) {
-    await runInitialSync(calendarRow.id, session.accessToken);
-    const webhookUrl = `${process.env.APP_URL}/api/webhooks/google-calendar`;
-    const channel = await registerWatchChannel(
-      session.accessToken,
-      googleCalendarId,
-      webhookUrl,
-    );
-    await db.insert(watchChannels).values({
-      googleCalendarRowId: calendarRow.id,
-      channelId: channel.channelId,
-      resourceId: channel.resourceId,
-      expiresAt: channel.expiresAt,
-    });
+    const syncedSuccessfully = await runInitialSync(calendarRow.id, session.accessToken);
+    // If the initial sync bailed out (expired/revoked token), the calendar's
+    // syncToken was never written. Registering a watch channel for it anyway
+    // would let a webhook fire later and crash runIncrementalSync, which
+    // requires a syncToken to already exist. The calendar is still marked
+    // isShared above, and the reconnect banner (set by runInitialSync via
+    // markNeedsReconnect) already tells the user what to do — no need to
+    // also throw here, just skip watch-channel registration.
+    if (syncedSuccessfully) {
+      const webhookUrl = `${process.env.APP_URL}/api/webhooks/google-calendar`;
+      const channel = await registerWatchChannel(
+        session.accessToken,
+        googleCalendarId,
+        webhookUrl,
+      );
+      await db.insert(watchChannels).values({
+        googleCalendarRowId: calendarRow.id,
+        channelId: channel.channelId,
+        resourceId: channel.resourceId,
+        expiresAt: channel.expiresAt,
+      });
+    }
   } else if (!enable && session.accessToken) {
     const [existingChannel] = await db
       .select()
