@@ -218,7 +218,24 @@ vi.mock("@/db/client", () => ({
   },
 }));
 
-import { getMergedViewEvents } from "@/lib/merged-view";
+import { getMergedViewEvents, getHiddenFriendIds } from "@/lib/merged-view";
+
+describe("getHiddenFriendIds", () => {
+  it("returns only the friends this viewer toggled off", async () => {
+    // app/page.tsx needs this to decide between a "Hide {friend}" and a
+    // "Show {friend}" button; previously the button always submitted
+    // visible="false", so a hidden friend could never be brought back.
+    const hidden = await getHiddenFriendIds("viewer");
+
+    expect(hidden.has("friend-2")).toBe(true);
+    // friend-1 is hidden by "someone-else", not by "viewer".
+    expect(hidden.has("friend-1")).toBe(false);
+  });
+
+  it("returns an empty set for a viewer with no prefs rows", async () => {
+    expect(await getHiddenFriendIds("viewer2")).toEqual(new Set());
+  });
+});
 
 describe("getMergedViewEvents", () => {
   it("excludes events from a friend's calendar whose owner is toggled off, but keeps the viewer's own", async () => {

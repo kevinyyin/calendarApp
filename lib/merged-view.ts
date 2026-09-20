@@ -11,6 +11,23 @@ import { getVisibleCalendars } from "@/lib/visibility";
 // target a `friendId` — a viewer can't hide themselves from their own merged
 // view — so that filter applies to friend calendars only, never the
 // viewer's own.
+/**
+ * The friend ids this viewer has toggled off in their merged view.
+ *
+ * Exported because the UI needs it too: app/page.tsx renders a "Hide
+ * {friend}" or "Show {friend}" button per friend depending on the current
+ * state, and without reading it there the button could only ever submit
+ * `visible="false"` — leaving a hidden friend unhideable outside the DB.
+ */
+export async function getHiddenFriendIds(viewerId: string): Promise<Set<string>> {
+  const prefs = await db
+    .select()
+    .from(mergedViewPrefs)
+    .where(eq(mergedViewPrefs.viewerId, viewerId));
+
+  return new Set(prefs.filter((p) => !p.isVisible).map((p) => p.friendId));
+}
+
 export async function getRelevantCalendarsForViewer(viewerId: string) {
   const ownCalendars = await db
     .select()
@@ -19,13 +36,7 @@ export async function getRelevantCalendarsForViewer(viewerId: string) {
 
   const friendCalendars = await getVisibleCalendars(viewerId);
 
-  const prefs = await db
-    .select()
-    .from(mergedViewPrefs)
-    .where(eq(mergedViewPrefs.viewerId, viewerId));
-  const hiddenFriendIds = new Set(
-    prefs.filter((p) => !p.isVisible).map((p) => p.friendId),
-  );
+  const hiddenFriendIds = await getHiddenFriendIds(viewerId);
 
   const visibleFriendCalendars = friendCalendars.filter(
     (cal) => !hiddenFriendIds.has(cal.userId),

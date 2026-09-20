@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { getMergedViewEvents, getRelevantCalendarsForViewer } from "@/lib/merged-view";
+import {
+  getMergedViewEvents,
+  getRelevantCalendarsForViewer,
+  getHiddenFriendIds,
+} from "@/lib/merged-view";
 import { getVisibleCalendars } from "@/lib/visibility";
 import { CalendarGrid } from "@/components/CalendarGrid";
 import { RealtimeMergedView } from "@/components/RealtimeMergedView";
@@ -12,16 +16,22 @@ export default async function HomePage() {
 
   const now = new Date();
   const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-  const [events, visibleCalendars, relevantCalendars] = await Promise.all([
-    getMergedViewEvents(session.user.id, { start: now, end: weekFromNow }),
-    // Friends-only, used below to build the "Hide {friend}" buttons — a user
-    // should never see a button to hide themselves.
-    getVisibleCalendars(session.user.id),
-    // Own + visible-friend calendars, used to give realtime coverage to every
-    // calendar that could produce a merged-view event, including ones with
-    // zero events in the currently-displayed range.
-    getRelevantCalendarsForViewer(session.user.id),
-  ]);
+  const [events, visibleCalendars, relevantCalendars, hiddenFriendIds] =
+    await Promise.all([
+      getMergedViewEvents(session.user.id, { start: now, end: weekFromNow }),
+      // Friends-only, used below to build the show/hide buttons — a user
+      // should never see a button to hide themselves. Note this is NOT
+      // filtered by the visibility toggle, so hidden friends still get a
+      // button (a "Show" one).
+      getVisibleCalendars(session.user.id),
+      // Own + visible-friend calendars, used to give realtime coverage to every
+      // calendar that could produce a merged-view event, including ones with
+      // zero events in the currently-displayed range.
+      getRelevantCalendarsForViewer(session.user.id),
+      // Which of those friends are currently toggled off, so each button can
+      // submit the OPPOSITE of the current state.
+      getHiddenFriendIds(session.user.id),
+    ]);
 
   const friendsByUserId = new Map(
     visibleCalendars.map((c) => [c.userId, c.displayName]),
@@ -48,18 +58,33 @@ export default async function HomePage() {
 
       {hasFriends ? (
         <div className="mb-6 flex flex-wrap gap-2">
-          {[...friendsByUserId.entries()].map(([friendId, label]) => (
-            <form key={friendId} action={toggleFriendVisibility}>
-              <input type="hidden" name="friendId" value={friendId} />
-              <input type="hidden" name="visible" value="false" />
-              <button
-                type="submit"
-                className="rounded-full border border-border bg-surface px-3 py-1 text-sm text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
-              >
-                Hide {label}
-              </button>
-            </form>
-          ))}
+          {[...friendsByUserId.entries()].map(([friendId, label]) => {
+            const isHidden = hiddenFriendIds.has(friendId);
+            return (
+              <form key={friendId} action={toggleFriendVisibility}>
+                <input type="hidden" name="friendId" value={friendId} />
+                {/* Submits the opposite of the current state. Hard-coding
+                    "false" here meant a hidden friend could only be brought
+                    back by editing the database. */}
+                <input
+                  type="hidden"
+                  name="visible"
+                  value={isHidden ? "true" : "false"}
+                />
+                <button
+                  type="submit"
+                  aria-pressed={isHidden}
+                  className={
+                    isHidden
+                      ? "rounded-full border border-dashed border-border bg-surface-muted px-3 py-1 text-sm text-muted transition-colors hover:bg-surface hover:text-foreground"
+                      : "rounded-full border border-border bg-surface px-3 py-1 text-sm text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+                  }
+                >
+                  {isHidden ? "Show" : "Hide"} {label}
+                </button>
+              </form>
+            );
+          })}
         </div>
       ) : (
         <div className="mb-6 rounded-lg border border-dashed border-border p-4 text-sm text-muted">
