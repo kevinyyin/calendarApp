@@ -1,9 +1,11 @@
 "use server";
 
 import { db } from "@/db/client";
-import { googleCalendars } from "@/db/schema";
+import { googleCalendars, watchChannels } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { listGoogleCalendars } from "@/lib/google-calendar";
+import { runInitialSync } from "@/lib/sync";
+import { registerWatchChannel, stopWatchChannel } from "@/lib/google-watch";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -53,6 +55,45 @@ export async function toggleShareCalendar(formData: FormData) {
       .update(googleCalendars)
       .set({ isShared: enable })
       .where(eq(googleCalendars.id, existing[0].id));
+  }
+
+  const [calendarRow] = await db
+    .select()
+    .from(googleCalendars)
+    .where(
+      and(
+        eq(googleCalendars.userId, session.user.id),
+        eq(googleCalendars.googleCalendarId, googleCalendarId),
+      ),
+    );
+
+  if (enable && session.accessToken) {
+    await runInitialSync(calendarRow.id, session.accessToken);
+    const webhookUrl = `${process.env.APP_URL}/api/webhooks/google-calendar`;
+    const channel = await registerWatchChannel(
+      session.accessToken,
+      googleCalendarId,
+      webhookUrl,
+    );
+    await db.insert(watchChannels).values({
+      googleCalendarRowId: calendarRow.id,
+      channelId: channel.channelId,
+      resourceId: channel.resourceId,
+      expiresAt: channel.expiresAt,
+    });
+  } else if (!enable && session.accessToken) {
+    const [existingChannel] = await db
+      .select()
+      .from(watchChannels)
+      .where(eq(watchChannels.googleCalendarRowId, calendarRow.id));
+    if (existingChannel) {
+      await stopWatchChannel(
+        session.accessToken,
+        existingChannel.channelId,
+        existingChannel.resourceId,
+      );
+      await db.delete(watchChannels).where(eq(watchChannels.id, existingChannel.id));
+    }
   }
 
   revalidatePath("/calendars");

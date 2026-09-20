@@ -98,3 +98,13 @@ export const events = pgTable(
     ),
   ],
 );
+
+export const watchChannels = pgTable("watch_channels", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  googleCalendarRowId: uuid("google_calendar_row_id")
+    .notNull()
+    .references(() => googleCalendars.id, { onDelete: "cascade" }),
+  channelId: text("channel_id").notNull(),
+  resourceId: text("resource_id").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
