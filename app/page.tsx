@@ -1,7 +1,8 @@
 import { auth } from "@/lib/auth";
-import { getMergedViewEvents } from "@/lib/merged-view";
+import { getMergedViewEvents, getRelevantCalendarsForViewer } from "@/lib/merged-view";
 import { getVisibleCalendars } from "@/lib/visibility";
 import { CalendarGrid } from "@/components/CalendarGrid";
+import { RealtimeMergedView } from "@/components/RealtimeMergedView";
 import { toggleFriendVisibility } from "@/app/actions/merged-view";
 
 export default async function HomePage() {
@@ -10,13 +11,26 @@ export default async function HomePage() {
 
   const now = new Date();
   const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-  const [events, visibleCalendars] = await Promise.all([
+  const [events, visibleCalendars, relevantCalendars] = await Promise.all([
     getMergedViewEvents(session.user.id, { start: now, end: weekFromNow }),
+    // Friends-only, used below to build the "Hide {friend}" buttons — a user
+    // should never see a button to hide themselves.
     getVisibleCalendars(session.user.id),
+    // Own + visible-friend calendars, used to give realtime coverage to every
+    // calendar that could produce a merged-view event, including ones with
+    // zero events in the currently-displayed range.
+    getRelevantCalendarsForViewer(session.user.id),
   ]);
 
   const friendsByUserId = new Map(
     visibleCalendars.map((c) => [c.userId, c.displayName]),
+  );
+
+  const calendarMetaByRowId = Object.fromEntries(
+    relevantCalendars.map((c) => [
+      c.id,
+      { personUserId: c.userId, personLabel: c.displayName, color: c.color },
+    ]),
   );
 
   return (
@@ -33,7 +47,12 @@ export default async function HomePage() {
           </form>
         ))}
       </div>
-      <CalendarGrid events={events} />
+      <RealtimeMergedView
+        initialEvents={events}
+        calendarMetaByRowId={calendarMetaByRowId}
+      >
+        {(liveEvents) => <CalendarGrid events={liveEvents} />}
+      </RealtimeMergedView>
     </main>
   );
 }

@@ -3,15 +3,15 @@ import { events, googleCalendars, mergedViewPrefs } from "@/db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { getVisibleCalendars } from "@/lib/visibility";
 
-export async function getMergedViewEvents(
-  viewerId: string,
-  range: { start: Date; end: Date },
-) {
-  // The viewer's own calendars are always visible to the viewer, regardless
-  // of `isShared` (that flag gates what FRIENDS can see of this user's
-  // calendars — it has nothing to do with what the user can see of their own
-  // data). Fetch them directly rather than going through
-  // `getVisibleCalendars`, which is friends-only by design.
+// The set of calendars relevant to a viewer's merged view: their own
+// calendars (always visible to themselves, regardless of `isShared` — that
+// flag only gates what FRIENDS can see of this user's calendars) plus
+// friends' shared calendars, with any friend the viewer has hidden via
+// `merged_view_prefs` filtered out. `merged_view_prefs` toggles only ever
+// target a `friendId` — a viewer can't hide themselves from their own merged
+// view — so that filter applies to friend calendars only, never the
+// viewer's own.
+export async function getRelevantCalendarsForViewer(viewerId: string) {
   const ownCalendars = await db
     .select()
     .from(googleCalendars)
@@ -27,14 +27,18 @@ export async function getMergedViewEvents(
     prefs.filter((p) => !p.isVisible).map((p) => p.friendId),
   );
 
-  // `merged_view_prefs` toggles only ever target a `friendId` — a viewer
-  // can't hide themselves from their own merged view — so the hidden-friend
-  // filter applies to friend calendars only, never to the viewer's own.
   const visibleFriendCalendars = friendCalendars.filter(
     (cal) => !hiddenFriendIds.has(cal.userId),
   );
 
-  const visibleAfterToggle = [...ownCalendars, ...visibleFriendCalendars];
+  return [...ownCalendars, ...visibleFriendCalendars];
+}
+
+export async function getMergedViewEvents(
+  viewerId: string,
+  range: { start: Date; end: Date },
+) {
+  const visibleAfterToggle = await getRelevantCalendarsForViewer(viewerId);
 
   const results = [];
   for (const cal of visibleAfterToggle) {
@@ -50,6 +54,8 @@ export async function getMergedViewEvents(
       );
     for (const row of rows) {
       results.push({
+        id: row.id,
+        googleCalendarRowId: cal.id,
         personUserId: cal.userId,
         personLabel: cal.displayName,
         color: cal.color,
