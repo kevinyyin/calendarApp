@@ -12,6 +12,7 @@ const {
   stopWatchChannelMock,
   insertValuesMock,
   updateSetMock,
+  deleteWhereMock,
   getFreshAccessTokenMock,
 } = vi.hoisted(() => ({
   authMock: vi.fn(),
@@ -20,6 +21,7 @@ const {
   stopWatchChannelMock: vi.fn(),
   insertValuesMock: vi.fn(async () => {}),
   updateSetMock: vi.fn(() => ({ where: vi.fn(async () => {}) })),
+  deleteWhereMock: vi.fn(async () => {}),
   // The action no longer reads `session.accessToken` (which Auth.js would
   // have serialized to the browser via GET /api/auth/session) — it asks for
   // a server-side, refresh-if-stale token instead. See lib/google-token.ts.
@@ -59,7 +61,7 @@ vi.mock("@/db/client", () => ({
     })),
     insert: vi.fn(() => ({ values: insertValuesMock })),
     update: vi.fn(() => ({ set: updateSetMock })),
-    delete: vi.fn(() => ({ where: vi.fn(async () => {}) })),
+    delete: vi.fn(() => ({ where: deleteWhereMock })),
   },
 }));
 
@@ -80,8 +82,11 @@ describe("toggleShareCalendar", () => {
     authMock.mockReset();
     runInitialSyncMock.mockReset();
     registerWatchChannelMock.mockReset();
+    stopWatchChannelMock.mockReset();
+    stopWatchChannelMock.mockResolvedValue(undefined);
     insertValuesMock.mockClear();
     updateSetMock.mockClear();
+    deleteWhereMock.mockClear();
     getFreshAccessTokenMock.mockClear();
     getFreshAccessTokenMock.mockResolvedValue("access-token-1");
     authMock.mockResolvedValue({ user: { id: "user-1" } });
@@ -148,6 +153,39 @@ describe("toggleShareCalendar", () => {
     // ...but the failure is not swallowed silently: a greppable line lands
     // in the runtime logs.
     expect(consoleError).toHaveBeenCalled();
+    expect(String(consoleError.mock.calls[0][0])).toContain("[watch-channel]");
+    consoleError.mockRestore();
+  });
+
+  it("saves the share setting and skips Google work when no access token can be obtained", async () => {
+    // The user's share choice is persisted before the token is fetched, so a
+    // dead Google grant must not surface as a server-action crash that makes
+    // the whole toggle look like it failed. The reconnect banner
+    // (getFreshAccessToken sets the flag) is what prompts the user.
+    getFreshAccessTokenMock.mockRejectedValue(new Error("must be reconnected"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(toggleShareCalendar(makeFormData())).resolves.toBeUndefined();
+
+    expect(updateSetMock).toHaveBeenCalledWith({ isShared: true });
+    expect(runInitialSyncMock).not.toHaveBeenCalled();
+    expect(registerWatchChannelMock).not.toHaveBeenCalled();
+    expect(String(consoleError.mock.calls[0][0])).toContain("[google-token]");
+    consoleError.mockRestore();
+  });
+
+  it("completes the un-share (and drops the local channel row) when stopping the channel fails", async () => {
+    // A leftover watch_channels row would have the daily renew cron keep
+    // renewing a push channel for a calendar the user stopped sharing.
+    stopWatchChannelMock.mockRejectedValue(new Error("channel already gone"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(
+      toggleShareCalendar(makeFormData({ enable: "false" })),
+    ).resolves.toBeUndefined();
+
+    expect(stopWatchChannelMock).toHaveBeenCalled();
+    expect(deleteWhereMock).toHaveBeenCalled();
     expect(String(consoleError.mock.calls[0][0])).toContain("[watch-channel]");
     consoleError.mockRestore();
   });

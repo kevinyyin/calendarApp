@@ -6,7 +6,10 @@ import { auth } from "@/lib/auth";
 import { listGoogleCalendars } from "@/lib/google-calendar";
 import { runInitialSync } from "@/lib/sync";
 import { registerWatchChannel, stopWatchChannel } from "@/lib/google-watch";
-import { getFreshAccessToken } from "@/lib/google-token";
+import {
+  getFreshAccessToken,
+  GoogleReconnectRequiredError,
+} from "@/lib/google-token";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -17,7 +20,24 @@ export async function getMyGoogleCalendars() {
   // than read off the session: session objects are serialized to the browser
   // by Auth.js's /api/auth/session endpoint, so a Google access token must
   // never live on one — see lib/auth.ts.
-  const accessToken = await getFreshAccessToken(session.user.id);
+  let accessToken: string;
+  try {
+    accessToken = await getFreshAccessToken(session.user.id);
+  } catch (err) {
+    // A dead grant is a user-actionable state, not a crash: the user has
+    // already been flagged for reconnect, so the banner is showing and this
+    // page's own empty state tells them to reconnect. Rendering that beats
+    // a 500. Any OTHER failure still propagates — a misconfigured deploy or
+    // a Google outage shouldn't masquerade as "you have no calendars".
+    if (err instanceof GoogleReconnectRequiredError) {
+      console.error(
+        `[google-token] Cannot list calendars for user ${session.user.id}; reconnect required:`,
+        err,
+      );
+      return [];
+    }
+    throw err;
+  }
   return listGoogleCalendars(accessToken);
 }
 
@@ -76,7 +96,24 @@ export async function toggleShareCalendar(formData: FormData) {
   // Server-side only, and refreshed if the stored token has gone stale —
   // never `session.accessToken`, which would put a live Google credential in
   // the browser-visible session payload.
-  const accessToken = await getFreshAccessToken(session.user.id);
+  //
+  // The user's share/un-share choice is already persisted above, so a token
+  // failure here must not surface as a server-action crash that makes the
+  // whole toggle look like it failed. Everything below this point is the
+  // Google-side follow-up (sync, watch channel), which simply can't happen
+  // without a token — skip it and let the reconnect banner
+  // (getFreshAccessToken already set the flag) drive the user to fix it.
+  let accessToken: string;
+  try {
+    accessToken = await getFreshAccessToken(session.user.id);
+  } catch (err) {
+    console.error(
+      `[google-token] Could not obtain a Google access token for user ${session.user.id} while toggling calendar ${googleCalendarId}. The share setting was saved; sync and watch-channel setup were skipped:`,
+      err,
+    );
+    revalidatePath("/calendars");
+    return;
+  }
 
   if (enable) {
     const syncedSuccessfully = await runInitialSync(calendarRow.id, accessToken);
@@ -123,11 +160,25 @@ export async function toggleShareCalendar(formData: FormData) {
       .from(watchChannels)
       .where(eq(watchChannels.googleCalendarRowId, calendarRow.id));
     if (existingChannel) {
-      await stopWatchChannel(
-        accessToken,
-        existingChannel.channelId,
-        existingChannel.resourceId,
-      );
+      // Same reasoning as the register path: the un-share is already saved,
+      // so a failure to tell Google to stop pushing must not crash the
+      // action. The local row is deleted either way — leaving it would make
+      // the daily renew-channels cron keep renewing a channel for a calendar
+      // the user has stopped sharing. A channel Google still thinks is live
+      // expires on its own within a week, and the webhook handler has
+      // nothing to sync for an unshared calendar in the meantime.
+      try {
+        await stopWatchChannel(
+          accessToken,
+          existingChannel.channelId,
+          existingChannel.resourceId,
+        );
+      } catch (err) {
+        console.error(
+          `[watch-channel] Failed to stop Google push channel ${existingChannel.channelId} for calendar row ${calendarRow.id} while un-sharing. Dropping the local row anyway; the channel will lapse on its own:`,
+          err,
+        );
+      }
       await db.delete(watchChannels).where(eq(watchChannels.id, existingChannel.id));
     }
   }
