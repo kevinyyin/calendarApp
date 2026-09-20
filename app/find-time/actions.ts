@@ -13,6 +13,10 @@ export async function findMutualFreeSlots(
     start: Date;
     end: Date;
     durationMinutes: number;
+    // The viewer's `Date#getTimezoneOffset()` value, threaded from the
+    // browser (app/find-time/page.tsx) so the 8am-10pm waking window means
+    // 8am-10pm where the viewer actually is. Omitted => UTC.
+    timezoneOffsetMinutes?: number;
   },
 ): Promise<Interval[]> {
   // The viewer's own busy time must ALWAYS be part of this computation, in
@@ -77,7 +81,9 @@ export async function findMutualFreeSlots(
     Array.from(busyByPerson.values()),
     { start: options.start, end: options.end },
     options.durationMinutes,
+    // Spec default: 8am-10pm in the VIEWER'S local time.
     { startHour: 8, endHour: 22 },
+    options.timezoneOffsetMinutes ?? 0,
   );
 }
 
@@ -97,6 +103,7 @@ export async function findMutualFreeSlotsByUsername(
     start: Date;
     end: Date;
     durationMinutes: number;
+    timezoneOffsetMinutes?: number;
   },
 ): Promise<Interval[]> {
   const friendUserIds = await resolveUsernamesToUserIds(options.friendUsernames);

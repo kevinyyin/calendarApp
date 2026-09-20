@@ -11,6 +11,11 @@ import type { Interval } from "@/lib/free-slots";
 export async function findSlotsForCurrentUser(
   friendUsernames: string[],
   durationMinutes: number,
+  // Supplied by the client as `new Date().getTimezoneOffset()`: the server
+  // has no way to know the viewer's timezone on its own, and the spec's
+  // 8am-10pm waking window is defined in the viewer's local time. Defaults
+  // to UTC if a caller omits it.
+  timezoneOffsetMinutes: number = 0,
 ): Promise<Interval[]> {
   const session = await auth();
   if (!session?.user?.id) return [];
@@ -23,5 +28,6 @@ export async function findSlotsForCurrentUser(
     start: now,
     end: twoWeeksOut,
     durationMinutes,
+    timezoneOffsetMinutes,
   });
 }

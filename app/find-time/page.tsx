@@ -19,7 +19,13 @@ export default function FindTimePage() {
 
     setIsPending(true);
     try {
-      const result = await findSlotsForCurrentUser(usernames, duration);
+      const result = await findSlotsForCurrentUser(
+        usernames,
+        duration,
+        // Only the browser knows where the viewer is; the server action
+        // needs this to clip waking hours to their local day.
+        new Date().getTimezoneOffset(),
+      );
       setSlots(result);
       setHasSearched(true);
     } finally {
