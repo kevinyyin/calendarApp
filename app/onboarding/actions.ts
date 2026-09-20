@@ -1,26 +1,24 @@
+"use server";
+
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { validateUsername } from "./validate-username";
 
-export function validateUsername(
-  username: string,
-): { ok: true } | { ok: false; error: string } {
-  if (username.length < 3) {
-    return { ok: false, error: "Username must be at least 3 characters" };
-  }
-  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-    return {
-      ok: false,
-      error: "Username can only contain letters, numbers, and underscores",
-    };
-  }
-  return { ok: true };
-}
+export type SetUsernameState = { ok: true } | { ok: false; error: string };
 
-export async function setUsername(formData: FormData) {
-  "use server";
+// Signature is (prevState, formData) rather than plain (formData) so the
+// onboarding form can drive it through React's useActionState and surface
+// validateUsername's/the "username taken" error message to the user instead
+// of silently discarding it (see app/onboarding/OnboardingForm.tsx).
+// setUsername is only ever called from that form, so widening its signature
+// doesn't touch any other caller.
+export async function setUsername(
+  _prevState: SetUsernameState | null,
+  formData: FormData,
+): Promise<SetUsernameState> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");

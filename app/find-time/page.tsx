@@ -28,40 +28,73 @@ export default function FindTimePage() {
   }
 
   return (
-    <main className="mx-auto max-w-lg p-6">
-      <h1 className="mb-4 text-xl font-semibold">Find a time</h1>
+    <main className="mx-auto max-w-lg px-6 py-10">
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold text-foreground">Find a time</h1>
+        <p className="mt-1 text-sm text-muted">
+          Search the next two weeks for a slot that&apos;s free on everyone&apos;s
+          calendar.
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <input
-          placeholder="friend usernames, comma-separated"
-          value={friendUsernames}
-          onChange={(e) => setFriendUsernames(e.target.value)}
-          className="rounded border px-3 py-2"
-        />
-        <input
-          type="number"
-          min={1}
-          value={duration}
-          onChange={(e) => setDuration(Number(e.target.value))}
-          className="rounded border px-3 py-2"
-        />
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="friend-usernames" className="text-sm font-medium text-foreground">
+            Friends
+          </label>
+          <input
+            id="friend-usernames"
+            placeholder="e.g. alice, bob"
+            value={friendUsernames}
+            onChange={(e) => setFriendUsernames(e.target.value)}
+            className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent"
+          />
+          <p className="text-xs text-muted">Comma-separated usernames.</p>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="duration" className="text-sm font-medium text-foreground">
+            Duration (minutes)
+          </label>
+          <input
+            id="duration"
+            type="number"
+            min={1}
+            value={duration}
+            onChange={(e) => setDuration(Number(e.target.value))}
+            className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent"
+          />
+        </div>
         <button
           type="submit"
           disabled={isPending}
-          className="rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
+          className="mt-1 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {isPending ? "Finding slots…" : "Find slots"}
         </button>
       </form>
+
       {hasSearched && slots.length === 0 && (
-        <p className="mt-4 text-sm text-slate-500">No mutual free slots found.</p>
+        <div className="mt-6 rounded-lg border border-dashed border-border p-8 text-center">
+          <p className="text-sm font-medium text-foreground">No free slots found</p>
+          <p className="mt-1 text-sm text-muted">
+            Nobody in that group has a mutual opening in the next two weeks.
+            Try fewer friends or a shorter duration.
+          </p>
+        </div>
       )}
-      <ul className="mt-4 flex flex-col gap-2">
-        {slots.map((slot, i) => (
-          <li key={i} className="rounded border p-3">
-            {slot.start.toLocaleString()} – {slot.end.toLocaleTimeString()}
-          </li>
-        ))}
-      </ul>
+
+      {slots.length > 0 && (
+        <ul className="mt-6 flex flex-col gap-2">
+          {slots.map((slot, i) => (
+            <li
+              key={i}
+              className="rounded-lg border border-border bg-surface p-3 text-sm text-foreground"
+            >
+              {slot.start.toLocaleString()} – {slot.end.toLocaleTimeString()}
+            </li>
+          ))}
+        </ul>
+      )}
     </main>
   );
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getMergedViewEvents, getRelevantCalendarsForViewer } from "@/lib/merged-view";
 import { getVisibleCalendars } from "@/lib/visibility";
@@ -33,20 +34,43 @@ export default async function HomePage() {
     ]),
   );
 
+  const hasFriends = friendsByUserId.size > 0;
+
   return (
-    <main className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-4 text-xl font-semibold">This week</h1>
-      <div className="mb-6 flex gap-2">
-        {[...friendsByUserId.entries()].map(([friendId, label]) => (
-          <form key={friendId} action={toggleFriendVisibility}>
-            <input type="hidden" name="friendId" value={friendId} />
-            <input type="hidden" name="visible" value="false" />
-            <button type="submit" className="rounded bg-slate-100 px-3 py-1 text-sm">
-              Hide {label}
-            </button>
-          </form>
-        ))}
+    <main className="mx-auto max-w-2xl px-6 py-10">
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold text-foreground">This week</h1>
+        <p className="mt-1 text-sm text-muted">
+          Your events, merged with every friend who&apos;s sharing a calendar
+          with you.
+        </p>
       </div>
+
+      {hasFriends ? (
+        <div className="mb-6 flex flex-wrap gap-2">
+          {[...friendsByUserId.entries()].map(([friendId, label]) => (
+            <form key={friendId} action={toggleFriendVisibility}>
+              <input type="hidden" name="friendId" value={friendId} />
+              <input type="hidden" name="visible" value="false" />
+              <button
+                type="submit"
+                className="rounded-full border border-border bg-surface px-3 py-1 text-sm text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+              >
+                Hide {label}
+              </button>
+            </form>
+          ))}
+        </div>
+      ) : (
+        <div className="mb-6 rounded-lg border border-dashed border-border p-4 text-sm text-muted">
+          No friends are sharing a calendar with you yet.{" "}
+          <Link href="/friends" className="font-medium text-accent hover:underline">
+            Add a friend
+          </Link>{" "}
+          to see their events here.
+        </div>
+      )}
+
       <RealtimeMergedView
         initialEvents={events}
         calendarMetaByRowId={calendarMetaByRowId}
