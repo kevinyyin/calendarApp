@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase-client";
+import { CalendarGrid } from "@/components/CalendarGrid";
 
 type RawIncomingRow = {
   id: string;
@@ -119,12 +120,10 @@ export function RealtimeMergedView({
   initialEvents,
   calendarMetaByRowId,
   supabaseAccessToken,
-  children,
 }: {
   initialEvents: MergedEventWithId[];
   calendarMetaByRowId: Record<string, CalendarMeta>;
   supabaseAccessToken?: string;
-  children: (events: MergedEventWithId[]) => React.ReactNode;
 }) {
   const [rows, setRows] = useState(initialEvents);
 
@@ -152,5 +151,5 @@ export function RealtimeMergedView({
     };
   }, [calendarMetaByRowId, supabaseAccessToken]);
 
-  return <>{children(rows)}</>;
+  return <CalendarGrid events={rows} />;
 }

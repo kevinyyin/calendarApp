@@ -6,7 +6,6 @@ import {
   getHiddenFriendIds,
 } from "@/lib/merged-view";
 import { getVisibleCalendars } from "@/lib/visibility";
-import { CalendarGrid } from "@/components/CalendarGrid";
 import { RealtimeMergedView } from "@/components/RealtimeMergedView";
 import { toggleFriendVisibility } from "@/app/actions/merged-view";
 
@@ -100,9 +99,7 @@ export default async function HomePage() {
         initialEvents={events}
         calendarMetaByRowId={calendarMetaByRowId}
         supabaseAccessToken={session.supabaseAccessToken}
-      >
-        {(liveEvents) => <CalendarGrid events={liveEvents} />}
-      </RealtimeMergedView>
+      />
     </main>
   );
 }
