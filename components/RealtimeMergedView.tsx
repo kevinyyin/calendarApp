@@ -37,6 +37,61 @@ type RawPostgresEventRow = {
   google_calendar_row_id: string;
 };
 
+// What `postgres_changes` hands the callback. Both `new` and `old` are
+// always present as objects — Supabase sends `{}` for whichever one doesn't
+// apply, NOT null/undefined. `old` is populated from the table's REPLICA
+// IDENTITY, which for `events` is the default (primary key only), so on a
+// DELETE it carries `id` and nothing else.
+type RealtimePayload = {
+  eventType: string;
+  new: Partial<RawPostgresEventRow>;
+  old: Partial<RawPostgresEventRow>;
+};
+
+export function removeEventById(
+  existing: MergedEventWithId[],
+  id: string,
+): MergedEventWithId[] {
+  return existing.filter((e) => e.id !== id);
+}
+
+/**
+ * Reduces one Realtime `postgres_changes` payload onto local state.
+ *
+ * DELETE is branched on explicitly rather than inferred from which of
+ * `payload.new` / `payload.old` is populated: the original
+ * `payload.new ?? payload.old` never fell through, because `{}` is truthy
+ * and `??` only falls through on null/undefined. Since this app implements a
+ * cancelled Google Calendar event as a DELETE of the `events` row (see
+ * lib/sync.ts's `upsertEventsFromGoogle`), that meant cancelled events never
+ * disappeared from an open tab.
+ */
+export function applyRealtimeEvent(
+  existing: MergedEventWithId[],
+  calendarMetaByRowId: Record<string, CalendarMeta>,
+  payload: RealtimePayload,
+): MergedEventWithId[] {
+  if (payload.eventType === "DELETE") {
+    const deletedId = payload.old?.id;
+    // No usable id (REPLICA IDENTITY NOTHING, or a malformed payload) means
+    // there's nothing safe to remove — leave state alone rather than
+    // guessing. The next full page load reconciles it.
+    if (!deletedId) return existing;
+    return removeEventById(existing, deletedId);
+  }
+
+  const row = payload.new;
+  if (!row?.id || !row.google_calendar_row_id) return existing;
+
+  return mergeIncomingEvent(existing, calendarMetaByRowId, {
+    id: row.id,
+    title: row.title ?? "(untitled)",
+    startAt: row.start_at!,
+    endAt: row.end_at!,
+    googleCalendarRowId: row.google_calendar_row_id,
+  });
+}
+
 export function mergeIncomingEvent(
   existing: MergedEventWithId[],
   calendarMetaByRowId: Record<string, CalendarMeta>,
@@ -81,14 +136,11 @@ export function RealtimeMergedView({
         "postgres_changes",
         { event: "*", schema: "public", table: "events" },
         (payload) => {
-          const row = (payload.new ?? payload.old) as RawPostgresEventRow;
           setRows((prev) =>
-            mergeIncomingEvent(prev, calendarMetaByRowId, {
-              id: row.id,
-              title: row.title,
-              startAt: row.start_at,
-              endAt: row.end_at,
-              googleCalendarRowId: row.google_calendar_row_id,
+            applyRealtimeEvent(prev, calendarMetaByRowId, {
+              eventType: payload.eventType,
+              new: payload.new as Partial<RawPostgresEventRow>,
+              old: payload.old as Partial<RawPostgresEventRow>,
             }),
           );
         },
