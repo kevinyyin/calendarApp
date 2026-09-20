@@ -60,7 +60,16 @@ export async function GET(req: Request) {
         accessToken,
         row.watchChannel.channelId,
         row.watchChannel.resourceId,
-      ).catch(() => {});
+      ).catch((err) => {
+        // Best-effort: Google may already consider the old channel gone, so
+        // we don't want a stop failure to block renewal. But we still log
+        // so genuine failures (network errors, auth errors, unexpected
+        // 5xxs) don't go unnoticed indefinitely.
+        console.error(
+          `Failed to stop old watch channel ${row.watchChannel.channelId} (calendar row ${row.watchChannel.googleCalendarRowId}):`,
+          err,
+        );
+      });
 
       await db.delete(watchChannels).where(eq(watchChannels.id, row.watchChannel.id));
 
