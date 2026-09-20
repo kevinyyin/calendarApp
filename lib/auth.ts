@@ -4,14 +4,21 @@ import { db } from "@/db/client";
 import * as schema from "@/db/schema";
 import { authConfig } from "@/lib/auth-config";
 import { sessionCallback } from "@/lib/session-callback";
-import { withEncryptedTokens, decryptAccountTokens } from "@/lib/auth-adapter";
+import { withEncryptedTokens } from "@/lib/auth-adapter";
 import { createSupabaseRealtimeToken } from "@/lib/supabase-realtime-token";
 import { clearNeedsReconnect } from "@/lib/reconnect";
-import { eq } from "drizzle-orm";
 
+// NOTE: no `accessToken` here, deliberately. Auth.js's database-session
+// strategy returns this callback's value verbatim as the body of
+// `GET /api/auth/session`, so anything added to `Session` is readable by any
+// client-side JavaScript on the page. The Google access token must stay
+// server-side (per the spec: tokens are "never sent to the browser") —
+// server code reaches it via `getFreshAccessToken(userId)` in
+// lib/google-token.ts instead. `supabaseAccessToken` is different: it's a
+// short-lived, RLS-scoped Realtime token that is *meant* for the browser —
+// see lib/supabase-realtime-token.ts.
 declare module "next-auth" {
   interface Session {
-    accessToken?: string;
     supabaseAccessToken?: string;
   }
 }
@@ -39,20 +46,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     // `sessionCallback` (lib/session-callback.ts) stays a standalone, pure,
     // unit-tested function that only adds `session.user.id` — see its own
-    // doc comment for why it's kept out of this file. The decrypted
-    // access-token lookup below is DB-dependent (it queries `accounts`), so
-    // it's composed on top as an additional step rather than folded into
-    // `sessionCallback` itself, which would make it untestable the same way.
+    // doc comment for why it's kept out of this file. The Supabase Realtime
+    // token is minted on top of it here because it's signed per-session.
+    //
+    // There is deliberately no `accounts` lookup here any more: the only
+    // reason this callback ever touched that table was to attach the
+    // decrypted Google access token to the session, which leaked it to the
+    // browser (see the `Session` augmentation above).
+    // `createSupabaseRealtimeToken` needs nothing but the user id.
     async session(params) {
       const withId = await sessionCallback(params);
-      const [account] = await db
-        .select()
-        .from(schema.accounts)
-        .where(eq(schema.accounts.userId, params.user.id));
-      if (account) {
-        withId.accessToken =
-          decryptAccountTokens(account).accessToken ?? undefined;
-      }
       withId.supabaseAccessToken = createSupabaseRealtimeToken(
         params.user.id,
       );

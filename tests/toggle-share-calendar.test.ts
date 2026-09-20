@@ -12,6 +12,7 @@ const {
   stopWatchChannelMock,
   insertValuesMock,
   updateSetMock,
+  getFreshAccessTokenMock,
 } = vi.hoisted(() => ({
   authMock: vi.fn(),
   runInitialSyncMock: vi.fn(),
@@ -19,6 +20,10 @@ const {
   stopWatchChannelMock: vi.fn(),
   insertValuesMock: vi.fn(async () => {}),
   updateSetMock: vi.fn(() => ({ where: vi.fn(async () => {}) })),
+  // The action no longer reads `session.accessToken` (which Auth.js would
+  // have serialized to the browser via GET /api/auth/session) — it asks for
+  // a server-side, refresh-if-stale token instead. See lib/google-token.ts.
+  getFreshAccessTokenMock: vi.fn(async () => "access-token-1"),
 }));
 
 vi.mock("@/lib/auth", () => ({ auth: authMock }));
@@ -28,6 +33,7 @@ vi.mock("@/lib/google-watch", () => ({
   stopWatchChannel: stopWatchChannelMock,
 }));
 vi.mock("@/lib/google-calendar", () => ({ listGoogleCalendars: vi.fn() }));
+vi.mock("@/lib/google-token", () => ({ getFreshAccessToken: getFreshAccessTokenMock }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const existingCalendarRow = {
@@ -76,10 +82,9 @@ describe("toggleShareCalendar", () => {
     registerWatchChannelMock.mockReset();
     insertValuesMock.mockClear();
     updateSetMock.mockClear();
-    authMock.mockResolvedValue({
-      user: { id: "user-1" },
-      accessToken: "access-token-1",
-    });
+    getFreshAccessTokenMock.mockClear();
+    getFreshAccessTokenMock.mockResolvedValue("access-token-1");
+    authMock.mockResolvedValue({ user: { id: "user-1" } });
   });
 
   it("does not register a watch channel or insert a watchChannels row when the initial sync did not complete (401/403 bail-out)", async () => {
@@ -120,5 +125,30 @@ describe("toggleShareCalendar", () => {
         resourceId: "res-1",
       }),
     );
+  });
+
+  it("completes successfully (and logs) when registering the watch channel fails", async () => {
+    // Google only accepts a push `address` on a domain verified in the
+    // project's Search Console, which *.vercel.app is not — so this call
+    // failing is an expected production condition. By the time it runs, the
+    // calendar has already been marked shared AND initial-synced, so letting
+    // the rejection escape would surface a server-action crash to the user
+    // for work that actually succeeded. The hourly reconciliation sweep is
+    // the designed fallback.
+    runInitialSyncMock.mockResolvedValue(true);
+    registerWatchChannelMock.mockRejectedValue(
+      new Error("Watch request denied: unauthorized webhook callback channel"),
+    );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(toggleShareCalendar(makeFormData())).resolves.toBeUndefined();
+
+    // No watch_channels row for a channel that was never created.
+    expect(insertValuesMock).not.toHaveBeenCalled();
+    // ...but the failure is not swallowed silently: a greppable line lands
+    // in the runtime logs.
+    expect(consoleError).toHaveBeenCalled();
+    expect(String(consoleError.mock.calls[0][0])).toContain("[watch-channel]");
+    consoleError.mockRestore();
   });
 });
