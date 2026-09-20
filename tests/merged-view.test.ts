@@ -20,10 +20,27 @@ type Row = Record<string, unknown>;
 
 // merged_view_prefs rows. Includes a row for a *different* viewer to prove
 // getMergedViewEvents scopes its prefs lookup to the requesting viewer, not
-// just to the friendId.
+// just to the friendId. Also includes a (nonsensical, but worth guarding
+// against) row where friendId happens to equal the viewer's own id with
+// isVisible: false — the viewer's own calendars must never be filtered by
+// this table at all, since merged_view_prefs only ever targets friends.
 const prefsRows: Row[] = [
   { viewerId: "viewer", friendId: "friend-2", isVisible: false },
   { viewerId: "someone-else", friendId: "friend-1", isVisible: false },
+  { viewerId: "viewer", friendId: "viewer", isVisible: false },
+];
+
+// The viewer's own google_calendars rows, returned directly (not via
+// getVisibleCalendars, which is friends-only). Deliberately isShared: false
+// to prove the viewer's own events are never gated by that flag.
+const ownCalendarRows: Row[] = [
+  {
+    id: "own-cal-1",
+    userId: "viewer",
+    displayName: "My Calendar",
+    color: "#999",
+    isShared: false,
+  },
 ];
 
 // events rows, keyed by googleCalendarRowId (== the `id` visibility returns
@@ -47,6 +64,12 @@ const eventRows: Row[] = [
     title: "Old standup",
     startAt: new Date("2026-09-10T09:00:00Z"),
     endAt: new Date("2026-09-10T09:15:00Z"),
+  },
+  {
+    googleCalendarRowId: "own-cal-1",
+    title: "Dentist",
+    startAt: new Date("2026-09-18T14:00:00Z"),
+    endAt: new Date("2026-09-18T14:30:00Z"),
   },
 ];
 
@@ -150,7 +173,13 @@ vi.mock("@/db/client", () => ({
     select: vi.fn(() => ({
       from: vi.fn((table: unknown) => ({
         where: vi.fn(async (condition: unknown) => {
-          const rows = getTableName(table as never) === "merged_view_prefs" ? prefsRows : eventRows;
+          const tableName = getTableName(table as never);
+          const rows =
+            tableName === "merged_view_prefs"
+              ? prefsRows
+              : tableName === "google_calendars"
+                ? ownCalendarRows
+                : eventRows;
           return rows.filter((row) => evaluateCondition(condition, row));
         }),
       })),
@@ -161,15 +190,18 @@ vi.mock("@/db/client", () => ({
 import { getMergedViewEvents } from "@/lib/merged-view";
 
 describe("getMergedViewEvents", () => {
-  it("excludes events from a calendar whose owner is toggled off", async () => {
+  it("excludes events from a friend's calendar whose owner is toggled off, but keeps the viewer's own", async () => {
     const result = await getMergedViewEvents("viewer", {
       start: new Date("2026-09-18T00:00:00Z"),
       end: new Date("2026-09-19T00:00:00Z"),
     });
 
-    expect(result).toHaveLength(1);
-    expect(result[0].title).toBe("Standup");
-    expect(result[0].personUserId).toBe("friend-1");
+    // friend-2 (cal-2 / "Planning") is toggled off via prefsRows; friend-1's
+    // "Standup" and the viewer's own "Dentist" should both remain.
+    expect(result.map((e) => e.title).sort()).toEqual(["Dentist", "Standup"]);
+    const standup = result.find((e) => e.title === "Standup")!;
+    expect(standup.personUserId).toBe("friend-1");
+    expect(result.map((e) => e.title)).not.toContain("Planning");
   });
 
   it("excludes events outside the requested date range", async () => {
@@ -195,5 +227,50 @@ describe("getMergedViewEvents", () => {
     });
 
     expect(result.some((e) => e.personUserId === "friend-1")).toBe(true);
+  });
+
+  it("includes the viewer's own events in the merged view", async () => {
+    // "viewer2" has no accepted friends (getVisibleCalendars returns []), so
+    // any event in the result must come from the viewer's own calendar —
+    // proving getMergedViewEvents surfaces the signed-in user's own events,
+    // not just friends' shared ones.
+    const result = await getMergedViewEvents("viewer2", {
+      start: new Date("2026-09-18T00:00:00Z"),
+      end: new Date("2026-09-19T00:00:00Z"),
+    });
+
+    // "viewer2" isn't the owner of own-cal-1 (that belongs to "viewer"), so
+    // this specifically confirms the friends-only path still works alone;
+    // the dedicated "viewer" checks below confirm the own-calendar merge.
+    expect(result.map((e) => e.title)).toEqual(["Standup"]);
+  });
+
+  it("shows the viewer's own events even though their calendar is not shared (isShared: false)", async () => {
+    // own-cal-1 (userId: "viewer") has isShared: false in ownCalendarRows.
+    // If the implementation reused getVisibleCalendars-style isShared
+    // filtering for the viewer's own calendars, "Dentist" would be dropped.
+    const result = await getMergedViewEvents("viewer", {
+      start: new Date("2026-09-18T00:00:00Z"),
+      end: new Date("2026-09-19T00:00:00Z"),
+    });
+
+    const dentist = result.find((e) => e.title === "Dentist");
+    expect(dentist).toBeDefined();
+    expect(dentist!.personUserId).toBe("viewer");
+  });
+
+  it("does not apply merged_view_prefs toggles to the viewer's own calendar", async () => {
+    // prefsRows includes { viewerId: "viewer", friendId: "viewer", isVisible:
+    // false } — a row that, if merged_view_prefs filtering were mistakenly
+    // applied to the viewer's own calendars (keyed by userId instead of
+    // strictly friendId), would hide the viewer's own "Dentist" event. It
+    // must still appear: this table only ever gates friends, never the
+    // viewer themselves.
+    const result = await getMergedViewEvents("viewer", {
+      start: new Date("2026-09-18T00:00:00Z"),
+      end: new Date("2026-09-19T00:00:00Z"),
+    });
+
+    expect(result.map((e) => e.title)).toContain("Dentist");
   });
 });

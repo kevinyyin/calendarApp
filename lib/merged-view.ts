@@ -1,5 +1,5 @@
 import { db } from "@/db/client";
-import { events, mergedViewPrefs } from "@/db/schema";
+import { events, googleCalendars, mergedViewPrefs } from "@/db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { getVisibleCalendars } from "@/lib/visibility";
 
@@ -7,7 +7,17 @@ export async function getMergedViewEvents(
   viewerId: string,
   range: { start: Date; end: Date },
 ) {
-  const visibleCalendars = await getVisibleCalendars(viewerId);
+  // The viewer's own calendars are always visible to the viewer, regardless
+  // of `isShared` (that flag gates what FRIENDS can see of this user's
+  // calendars — it has nothing to do with what the user can see of their own
+  // data). Fetch them directly rather than going through
+  // `getVisibleCalendars`, which is friends-only by design.
+  const ownCalendars = await db
+    .select()
+    .from(googleCalendars)
+    .where(eq(googleCalendars.userId, viewerId));
+
+  const friendCalendars = await getVisibleCalendars(viewerId);
 
   const prefs = await db
     .select()
@@ -17,9 +27,14 @@ export async function getMergedViewEvents(
     prefs.filter((p) => !p.isVisible).map((p) => p.friendId),
   );
 
-  const visibleAfterToggle = visibleCalendars.filter(
+  // `merged_view_prefs` toggles only ever target a `friendId` — a viewer
+  // can't hide themselves from their own merged view — so the hidden-friend
+  // filter applies to friend calendars only, never to the viewer's own.
+  const visibleFriendCalendars = friendCalendars.filter(
     (cal) => !hiddenFriendIds.has(cal.userId),
   );
+
+  const visibleAfterToggle = [...ownCalendars, ...visibleFriendCalendars];
 
   const results = [];
   for (const cal of visibleAfterToggle) {
