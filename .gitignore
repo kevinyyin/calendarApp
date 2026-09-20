@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# git worktrees (used for isolated feature development)
+.worktrees/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
