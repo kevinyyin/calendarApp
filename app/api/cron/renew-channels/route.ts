@@ -1,8 +1,8 @@
 import { db } from "@/db/client";
-import { watchChannels, googleCalendars, accounts } from "@/db/schema";
-import { eq, lt, sql } from "drizzle-orm";
+import { watchChannels, googleCalendars } from "@/db/schema";
+import { eq, lt } from "drizzle-orm";
 import { registerWatchChannel, stopWatchChannel } from "@/lib/google-watch";
-import { decryptAccountTokens } from "@/lib/auth-adapter";
+import { getFreshAccessToken } from "@/lib/google-token";
 import { NextResponse } from "next/server";
 
 const ONE_DAY_MS = 1000 * 60 * 60 * 24;
@@ -16,19 +16,16 @@ export async function GET(req: Request) {
 
   const expiringSoon = new Date(Date.now() + ONE_DAY_MS);
 
-  // The (encrypted) access token is correlated in via a scalar subquery
-  // (rather than a second `.innerJoin`) so this stays a single joined query:
-  // watch channels only reference their calendar row, and the owning
-  // account is reached through that calendar's `userId`.
+  // The calendar owner's `userId` is joined in (rather than their stored
+  // access token) because the stored token can't be trusted to still be
+  // valid: Auth.js only writes `accounts.access_token` on a user's first
+  // sign-in, so it goes stale within the hour. `getFreshAccessToken` below
+  // refreshes it against Google when needed — see lib/google-token.ts.
   const rows = await db
     .select({
       watchChannel: watchChannels,
       googleCalendarId: googleCalendars.googleCalendarId,
-      accessToken: sql<string | null>`(
-        select ${accounts.access_token} from ${accounts}
-        where ${accounts.userId} = ${googleCalendars.userId}
-        limit 1
-      )`,
+      userId: googleCalendars.userId,
     })
     .from(watchChannels)
     .innerJoin(googleCalendars, eq(watchChannels.googleCalendarRowId, googleCalendars.id))
@@ -38,15 +35,13 @@ export async function GET(req: Request) {
   let renewed = 0;
 
   for (const row of rows) {
-    if (!row.accessToken) continue;
-
-    // `row.accessToken` is the raw (encrypted-at-rest) `accounts.access_token`
-    // column value — see `lib/auth-adapter.ts`'s `withEncryptedTokens` — so it
-    // must be decrypted before it can be used as a real OAuth bearer token.
-    const { accessToken } = decryptAccountTokens({ access_token: row.accessToken });
-    if (!accessToken) continue;
-
     try {
+      // Inside the per-channel try/catch: a user whose Google grant is dead
+      // (getFreshAccessToken throws GoogleReconnectRequiredError, having
+      // already flagged them for reconnect) must not stop other users'
+      // channels in this run from being renewed.
+      const accessToken = await getFreshAccessToken(row.userId);
+
       const fresh = await registerWatchChannel(accessToken, row.googleCalendarId, webhookUrl);
 
       await db.insert(watchChannels).values({

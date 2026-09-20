@@ -1,9 +1,9 @@
 import { db } from "@/db/client";
-import { accounts, events, googleCalendars } from "@/db/schema";
+import { events, googleCalendars } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import type { GoogleEvent } from "@/lib/google-calendar-events";
 import { fetchAllGoogleEvents, fetchIncrementalGoogleEvents } from "@/lib/google-calendar-events";
-import { decryptAccountTokens } from "@/lib/auth-adapter";
+import { getFreshAccessToken } from "@/lib/google-token";
 
 function toEventRow(googleCalendarRowId: string, event: GoogleEvent) {
   const isAllDay = Boolean(event.start?.date);
@@ -113,15 +113,12 @@ export async function runInitialSync(
   }
 }
 
+// Always goes through `getFreshAccessToken` rather than reading (and
+// decrypting) `accounts.access_token` directly: Auth.js only writes that
+// column on a user's FIRST sign-in, so the stored value goes stale about an
+// hour later and never recovers on its own — see lib/google-token.ts.
 async function getAccessTokenForCalendarOwner(userId: string): Promise<string> {
-  const [account] = await db
-    .select()
-    .from(accounts)
-    .where(eq(accounts.userId, userId));
-  if (!account) throw new Error(`No linked Google account for user ${userId}`);
-  const { accessToken } = decryptAccountTokens(account);
-  if (!accessToken) throw new Error(`No access token for user ${userId}`);
-  return accessToken;
+  return getFreshAccessToken(userId);
 }
 
 export async function runIncrementalSync(calendarRowId: string) {
