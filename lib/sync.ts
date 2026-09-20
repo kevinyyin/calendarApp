@@ -3,7 +3,10 @@ import { events, googleCalendars } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import type { GoogleEvent } from "@/lib/google-calendar-events";
 import { fetchAllGoogleEvents, fetchIncrementalGoogleEvents } from "@/lib/google-calendar-events";
-import { getFreshAccessToken } from "@/lib/google-token";
+import {
+  getFreshAccessToken,
+  GoogleReconnectRequiredError,
+} from "@/lib/google-token";
 
 function toEventRow(googleCalendarRowId: string, event: GoogleEvent) {
   const isAllDay = Boolean(event.start?.date);
@@ -131,7 +134,21 @@ export async function runIncrementalSync(calendarRowId: string) {
     throw new Error(`Calendar ${calendarRowId} has no sync token; run initial sync first`);
   }
 
-  const accessToken = await getAccessTokenForCalendarOwner(calendarRow.userId);
+  let accessToken: string;
+  try {
+    accessToken = await getAccessTokenForCalendarOwner(calendarRow.userId);
+  } catch (err) {
+    // A revoked/expired grant is the same user-actionable condition the
+    // 401/403 handler below already covers, and `getFreshAccessToken` has
+    // already set the reconnect flag — so bail quietly rather than throwing.
+    // That keeps the webhook route answering 200 (a 500 makes Google retry
+    // and eventually drop the channel) and keeps the reconcile cron from
+    // counting a dead grant as a retryable failure. Any OTHER token failure
+    // (Google outage, misconfiguration) still throws, because those SHOULD
+    // be retried and SHOULD show up as failures.
+    if (err instanceof GoogleReconnectRequiredError) return;
+    throw err;
+  }
 
   try {
     const { items, nextSyncToken } = await fetchIncrementalGoogleEvents(
