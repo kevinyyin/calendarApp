@@ -6,6 +6,7 @@ import { authConfig } from "@/lib/auth-config";
 import { sessionCallback } from "@/lib/session-callback";
 import { withEncryptedTokens, decryptAccountTokens } from "@/lib/auth-adapter";
 import { createSupabaseRealtimeToken } from "@/lib/supabase-realtime-token";
+import { clearNeedsReconnect } from "@/lib/reconnect";
 import { eq } from "drizzle-orm";
 
 declare module "next-auth" {
@@ -27,6 +28,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ),
   session: { strategy: "database" },
   callbacks: {
+    // A fresh successful sign-in means Google just re-issued valid tokens
+    // for this user, so any earlier expired/revoked-token flag is stale —
+    // clear it here rather than waiting for the next sync to notice.
+    async signIn({ user }) {
+      if (user.id) {
+        await clearNeedsReconnect(user.id);
+      }
+      return true;
+    },
     // `sessionCallback` (lib/session-callback.ts) stays a standalone, pure,
     // unit-tested function that only adds `session.user.id` — see its own
     // doc comment for why it's kept out of this file. The decrypted

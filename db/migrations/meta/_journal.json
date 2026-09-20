@@ -43,6 +43,13 @@
       "when": 1789872875552,
       "tag": "0005_smooth_tana_nile",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789923625355,
+      "tag": "0006_slim_sleeper",
+      "breakpoints": true
     }
   ]
 }

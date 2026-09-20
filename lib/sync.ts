@@ -61,6 +61,14 @@ export async function upsertEventsFromGoogle(
   }
 }
 
+function isGoogleAuthError(err: unknown): boolean {
+  const code =
+    typeof err === "object" && err !== null && "code" in err
+      ? (err as { code?: unknown }).code
+      : undefined;
+  return code === 401 || code === 403;
+}
+
 export async function runInitialSync(calendarRowId: string, accessToken: string) {
   const [calendarRow] = await db
     .select()
@@ -68,17 +76,29 @@ export async function runInitialSync(calendarRowId: string, accessToken: string)
     .where(eq(googleCalendars.id, calendarRowId));
   if (!calendarRow) throw new Error(`Unknown calendar row ${calendarRowId}`);
 
-  const { items, nextSyncToken } = await fetchAllGoogleEvents(
-    accessToken,
-    calendarRow.googleCalendarId,
-  );
+  try {
+    const { items, nextSyncToken } = await fetchAllGoogleEvents(
+      accessToken,
+      calendarRow.googleCalendarId,
+    );
 
-  await upsertEventsFromGoogle(calendarRowId, items);
+    await upsertEventsFromGoogle(calendarRowId, items);
 
-  await db
-    .update(googleCalendars)
-    .set({ syncToken: nextSyncToken, lastSyncedAt: new Date() })
-    .where(eq(googleCalendars.id, calendarRowId));
+    await db
+      .update(googleCalendars)
+      .set({ syncToken: nextSyncToken, lastSyncedAt: new Date() })
+      .where(eq(googleCalendars.id, calendarRowId));
+  } catch (err) {
+    // Google returns 401/403 when the stored access token has expired or the
+    // user revoked this app's access — surface that as a reconnect prompt
+    // instead of failing the whole sync run.
+    if (isGoogleAuthError(err)) {
+      const { markNeedsReconnect } = await import("@/lib/reconnect");
+      await markNeedsReconnect(calendarRow.userId);
+      return;
+    }
+    throw err;
+  }
 }
 
 async function getAccessTokenForCalendarOwner(userId: string): Promise<string> {
@@ -127,6 +147,14 @@ export async function runIncrementalSync(calendarRowId: string) {
       (err as { code?: unknown }).code === 410;
     if (isSyncTokenExpired) {
       await runInitialSync(calendarRowId, accessToken);
+      return;
+    }
+    // Google returns 401/403 when the stored access token has expired or the
+    // user revoked this app's access — surface that as a reconnect prompt
+    // instead of failing the whole sync run.
+    if (isGoogleAuthError(err)) {
+      const { markNeedsReconnect } = await import("@/lib/reconnect");
+      await markNeedsReconnect(calendarRow.userId);
       return;
     }
     throw err;

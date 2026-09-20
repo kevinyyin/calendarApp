@@ -17,6 +17,7 @@ export const users = pgTable("users", {
   image: text("image"),
   username: text("username").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  needsReconnect: boolean("needs_reconnect").default(false).notNull(),
 });
 
 export const accounts = pgTable(
