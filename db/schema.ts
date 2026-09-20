@@ -8,6 +8,7 @@ import {
   boolean,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -110,18 +111,36 @@ export const watchChannels = pgTable("watch_channels", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
 
-export const friendships = pgTable("friendships", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  requesterId: uuid("requester_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  recipientId: uuid("recipient_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  status: text("status").notNull().default("pending"), // "pending" | "accepted"
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  respondedAt: timestamp("responded_at"),
-});
+export const friendships = pgTable(
+  "friendships",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    requesterId: uuid("requester_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recipientId: uuid("recipient_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("pending"), // "pending" | "accepted" | "declined"
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    respondedAt: timestamp("responded_at"),
+  },
+  (table) => [
+    // Backstop for the duplicate/reciprocal check in lib/friendships.ts's
+    // `sendFriendRequest`: that check can still race against a concurrent
+    // second submit (a double-clicked button), which this index turns into a
+    // constraint violation instead of a second pending row.
+    //
+    // PARTIAL, on non-declined rows only: a decline is not a permanent
+    // block, so the same pair must be able to try again afterwards. It
+    // covers the (requester, recipient) direction; the REVERSE direction
+    // (B->A alongside A->B) is not expressible as a plain column index and
+    // stays guarded in application code.
+    uniqueIndex("friendships_active_pair_unique")
+      .on(table.requesterId, table.recipientId)
+      .where(sql`${table.status} <> 'declined'`),
+  ],
+);
 
 export const mergedViewPrefs = pgTable(
   "merged_view_prefs",

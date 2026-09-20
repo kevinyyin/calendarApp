@@ -53,18 +53,19 @@ function evaluateCondition(node: unknown, row: Row): boolean {
     return evaluateCondition(chunks[1], row);
   }
 
-  // A single eq(column, value): built by `sql`${column} = ${param}`` as
-  // [StringChunk(""), Column, StringChunk(" = "), Param, StringChunk("")].
+  // A single eq/ne(column, value): built by `sql`${column} = ${param}`` as
+  // [StringChunk(""), Column, StringChunk(" = "), Param, StringChunk("")]
+  // (`ne` is identical but with a " <> " separator).
   if (
     chunks.length === 5 &&
     is(chunks[1], Column) &&
     is(chunks[2], StringChunk) &&
-    chunks[2].value[0] === " = "
+    (chunks[2].value[0] === " = " || chunks[2].value[0] === " <> ")
   ) {
     const field = toCamel(chunks[1].name);
     const paramNode = chunks[3];
     const value = is(paramNode, Param) ? paramNode.value : paramNode;
-    return row[field] === value;
+    return chunks[2].value[0] === " = " ? row[field] === value : row[field] !== value;
   }
 
   // sql.join'd and()/or() conditions: cond, sep, cond, sep, cond, ...
@@ -154,6 +155,69 @@ describe("sendFriendRequest", () => {
     expect(result).toEqual({ ok: false, error: "You cannot friend yourself" });
     expect(state.friendships).toHaveLength(0);
   });
+
+  it("rejects a duplicate request to someone who already has a pending one", async () => {
+    // A double-clicked submit button used to create two identical pending
+    // rows, which then both showed up in the recipient's inbox.
+    state.friendships = [
+      { id: "f-1", requesterId: "user-a", recipientId: "user-b", status: "pending" },
+    ];
+
+    const result = await sendFriendRequest("user-a", "bob");
+
+    expect(result.ok).toBe(false);
+    expect(state.friendships).toHaveLength(1);
+  });
+
+  it("rejects a duplicate request to someone who is already an accepted friend", async () => {
+    state.friendships = [
+      { id: "f-1", requesterId: "user-a", recipientId: "user-b", status: "accepted" },
+    ];
+
+    const result = await sendFriendRequest("user-a", "bob");
+
+    expect(result.ok).toBe(false);
+    expect(state.friendships).toHaveLength(1);
+  });
+
+  it("rejects a reciprocal request when the other party already requested first", async () => {
+    // B->A already exists; A->B must not be created alongside it, or both
+    // can be accepted and the friend appears twice in every listing (they
+    // match on both the requester and the recipient side).
+    state.friendships = [
+      { id: "f-1", requesterId: "user-b", recipientId: "user-a", status: "pending" },
+    ];
+
+    const result = await sendFriendRequest("user-a", "bob");
+
+    expect(result.ok).toBe(false);
+    expect(state.friendships).toHaveLength(1);
+  });
+
+  it("allows a fresh request after a previous one was declined", async () => {
+    // A decline is not a permanent block — the guard only considers
+    // pending/accepted rows, in either direction.
+    state.friendships = [
+      { id: "f-1", requesterId: "user-a", recipientId: "user-b", status: "declined" },
+    ];
+
+    const result = await sendFriendRequest("user-a", "bob");
+
+    expect(result).toEqual({ ok: true });
+    expect(state.friendships).toHaveLength(2);
+  });
+
+  it("does not block a request just because the requester has an unrelated friendship", async () => {
+    state.users.push({ id: "user-c", username: "carol" });
+    state.friendships = [
+      { id: "f-1", requesterId: "user-a", recipientId: "user-c", status: "accepted" },
+    ];
+
+    const result = await sendFriendRequest("user-a", "bob");
+
+    expect(result).toEqual({ ok: true });
+    expect(state.friendships).toHaveLength(2);
+  });
 });
 
 describe("respondToFriendRequest", () => {
@@ -187,6 +251,30 @@ describe("respondToFriendRequest", () => {
     state.friendships = [];
     const result = await respondToFriendRequest("missing", "user-b", true);
     expect(result).toEqual({ ok: false, error: "Friend request not found" });
+  });
+
+  it("refuses to accept a request that was already declined", async () => {
+    // Without a status check, a stale form (or a replayed POST) could flip a
+    // declined request to accepted long after the recipient said no.
+    state.friendships = [
+      { id: "f-1", requesterId: "user-a", recipientId: "user-b", status: "declined" },
+    ];
+
+    const result = await respondToFriendRequest("f-1", "user-b", true);
+
+    expect(result.ok).toBe(false);
+    expect(state.friendships[0].status).toBe("declined");
+  });
+
+  it("refuses to re-answer a request that was already accepted", async () => {
+    state.friendships = [
+      { id: "f-1", requesterId: "user-a", recipientId: "user-b", status: "accepted" },
+    ];
+
+    const result = await respondToFriendRequest("f-1", "user-b", false);
+
+    expect(result.ok).toBe(false);
+    expect(state.friendships[0].status).toBe("accepted");
   });
 });
 

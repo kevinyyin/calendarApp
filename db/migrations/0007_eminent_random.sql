@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "friendships_active_pair_unique" ON "friendships" USING btree ("requester_id","recipient_id") WHERE "friendships"."status" <> 'declined';
