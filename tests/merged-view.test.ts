@@ -71,6 +71,31 @@ const eventRows: Row[] = [
     startAt: new Date("2026-09-18T14:00:00Z"),
     endAt: new Date("2026-09-18T14:30:00Z"),
   },
+  // Starts the evening BEFORE the requested range and ends inside it — a
+  // containment predicate (startAt >= range.start AND endAt <= range.end)
+  // drops it entirely even though the viewer is busy for the first hour of
+  // the displayed day.
+  {
+    googleCalendarRowId: "cal-1",
+    title: "Red-eye flight",
+    startAt: new Date("2026-09-17T23:00:00Z"),
+    endAt: new Date("2026-09-18T01:00:00Z"),
+  },
+  // Spans the whole requested range and out the far end.
+  {
+    googleCalendarRowId: "cal-1",
+    title: "Conference week",
+    startAt: new Date("2026-09-16T00:00:00Z"),
+    endAt: new Date("2026-09-25T00:00:00Z"),
+  },
+  // Touches range.start only at its endpoint (endAt == range.start): an
+  // overlap of zero length is not an overlap, so this must stay excluded.
+  {
+    googleCalendarRowId: "cal-1",
+    title: "Ends exactly at range start",
+    startAt: new Date("2026-09-17T22:00:00Z"),
+    endAt: new Date("2026-09-18T00:00:00Z"),
+  },
 ];
 
 function toCamel(columnName: string): string {
@@ -133,6 +158,12 @@ function evaluateCondition(node: unknown, row: Row): boolean {
     }
     if (op === " <= ") {
       return toComparable(rowValue) <= toComparable(value);
+    }
+    if (op === " < ") {
+      return toComparable(rowValue) < toComparable(value);
+    }
+    if (op === " > ") {
+      return toComparable(rowValue) > toComparable(value);
     }
   }
 
@@ -197,8 +228,13 @@ describe("getMergedViewEvents", () => {
     });
 
     // friend-2 (cal-2 / "Planning") is toggled off via prefsRows; friend-1's
-    // "Standup" and the viewer's own "Dentist" should both remain.
-    expect(result.map((e) => e.title).sort()).toEqual(["Dentist", "Standup"]);
+    // events and the viewer's own "Dentist" should all remain.
+    expect(result.map((e) => e.title).sort()).toEqual([
+      "Conference week",
+      "Dentist",
+      "Red-eye flight",
+      "Standup",
+    ]);
     const standup = result.find((e) => e.title === "Standup")!;
     expect(standup.personUserId).toBe("friend-1");
     expect(result.map((e) => e.title)).not.toContain("Planning");
@@ -242,7 +278,11 @@ describe("getMergedViewEvents", () => {
     // "viewer2" isn't the owner of own-cal-1 (that belongs to "viewer"), so
     // this specifically confirms the friends-only path still works alone;
     // the dedicated "viewer" checks below confirm the own-calendar merge.
-    expect(result.map((e) => e.title)).toEqual(["Standup"]);
+    expect(result.map((e) => e.title).sort()).toEqual([
+      "Conference week",
+      "Red-eye flight",
+      "Standup",
+    ]);
   });
 
   it("shows the viewer's own events even though their calendar is not shared (isShared: false)", async () => {
@@ -272,5 +312,39 @@ describe("getMergedViewEvents", () => {
     });
 
     expect(result.map((e) => e.title)).toContain("Dentist");
+  });
+
+  it("includes an event that starts before the range but runs into it", () => {
+    // The old predicate was containment (startAt >= range.start AND endAt <=
+    // range.end), which silently dropped anything crossing a boundary — an
+    // event running 23:00 -> 01:00 across midnight, or a multi-day one. The
+    // viewer really is busy during the overlap, so it belongs in the view.
+    return getMergedViewEvents("viewer2", {
+      start: new Date("2026-09-18T00:00:00Z"),
+      end: new Date("2026-09-19T00:00:00Z"),
+    }).then((result) => {
+      expect(result.map((e) => e.title)).toContain("Red-eye flight");
+    });
+  });
+
+  it("includes an event that spans the entire range in both directions", async () => {
+    const result = await getMergedViewEvents("viewer2", {
+      start: new Date("2026-09-18T00:00:00Z"),
+      end: new Date("2026-09-19T00:00:00Z"),
+    });
+
+    expect(result.map((e) => e.title)).toContain("Conference week");
+  });
+
+  it("still excludes an event that merely touches the range boundary", async () => {
+    // endAt == range.start is a zero-length intersection, i.e. not an
+    // overlap: the strict `endAt > range.start` half of the predicate is
+    // what keeps yesterday's last meeting out of today's view.
+    const result = await getMergedViewEvents("viewer2", {
+      start: new Date("2026-09-18T00:00:00Z"),
+      end: new Date("2026-09-19T00:00:00Z"),
+    });
+
+    expect(result.map((e) => e.title)).not.toContain("Ends exactly at range start");
   });
 });

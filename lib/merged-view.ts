@@ -1,6 +1,6 @@
 import { db } from "@/db/client";
 import { events, googleCalendars, mergedViewPrefs } from "@/db/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, lt, gt } from "drizzle-orm";
 import { getVisibleCalendars } from "@/lib/visibility";
 
 // The set of calendars relevant to a viewer's merged view: their own
@@ -46,10 +46,17 @@ export async function getMergedViewEvents(
       .select()
       .from(events)
       .where(
+        // OVERLAP, not containment. `startAt >= range.start AND endAt <=
+        // range.end` silently dropped every event crossing a boundary — a
+        // 23:00→01:00 event on the view's first day, or any multi-day one —
+        // even though the person is genuinely busy during the part that
+        // falls inside the range. The comparisons are strict so an event
+        // that merely touches a boundary (endAt == range.start) isn't
+        // counted: a zero-length intersection is not an overlap.
         and(
           eq(events.googleCalendarRowId, cal.id),
-          gte(events.startAt, range.start),
-          lte(events.endAt, range.end),
+          lt(events.startAt, range.end),
+          gt(events.endAt, range.start),
         ),
       );
     for (const row of rows) {
