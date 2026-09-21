@@ -1,13 +1,23 @@
 "use client";
 
-import { useActionState } from "react";
-import { setUsername, type SetUsernameState } from "./actions";
-
-const initialState: SetUsernameState = { ok: true };
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { setUsername } from "./actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export function OnboardingForm() {
-  const [state, formAction, isPending] = useActionState(setUsername, initialState);
-  const error = state.ok ? undefined : state.error;
+  const router = useRouter();
+  // Initial state is `null`, not `{ok:true}`: the effect below redirects on
+  // a successful submission, and keying that off `state?.ok` (rather than
+  // `state.ok` on a truthy default) means it only fires after `formAction`
+  // actually runs once — not on first render, before the user has done
+  // anything.
+  const [state, formAction] = useActionState(setUsername, null);
+  const error = state && !state.ok ? state.error : undefined;
+
+  useEffect(() => {
+    if (state?.ok) router.push("/");
+  }, [state, router]);
 
   return (
     <form action={formAction} className="flex w-full max-w-xs flex-col gap-3">
@@ -38,13 +48,12 @@ export function OnboardingForm() {
           </p>
         )}
       </div>
-      <button
-        type="submit"
-        disabled={isPending}
+      <SubmitButton
+        pendingText="Saving…"
         className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
       >
-        {isPending ? "Saving…" : "Continue"}
-      </button>
+        Continue
+      </SubmitButton>
     </form>
   );
 }

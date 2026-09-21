@@ -4,12 +4,18 @@ import { and, eq, or } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { respondToFriendRequestAction } from "./actions";
 import { FriendRequestForm } from "./FriendRequestForm";
+import { UsernameForm } from "./UsernameForm";
 import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function FriendsPage() {
   const session = await auth();
   if (!session?.user?.id) return null;
   const userId = session.user.id;
+
+  const [me] = await db
+    .select({ username: users.username })
+    .from(users)
+    .where(eq(users.id, userId));
 
   const pendingIncoming = await db
     .select({ id: friendships.id, requesterUsername: users.username })
@@ -37,6 +43,8 @@ export default async function FriendsPage() {
           Send a request by username, then share a calendar once you&apos;re connected.
         </p>
       </div>
+
+      <UsernameForm currentUsername={me?.username ?? null} />
 
       <FriendRequestForm />
 
