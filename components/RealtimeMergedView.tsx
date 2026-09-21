@@ -127,6 +127,17 @@ export function RealtimeMergedView({
 }) {
   const [rows, setRows] = useState(initialEvents);
 
+  // `useState(initialEvents)` only ever consults its argument on the very
+  // first mount — a server action that calls revalidatePath (e.g. the
+  // "Hide"/"Show" friend toggle, or sharing a new calendar) re-renders this
+  // already-mounted client component with a fresh `initialEvents` prop, and
+  // without this effect that prop update would be silently ignored: the
+  // merged view would keep showing whatever was on screen before the toggle,
+  // making the button look like it does nothing.
+  useEffect(() => {
+    setRows(initialEvents);
+  }, [initialEvents]);
+
   useEffect(() => {
     const supabase = createBrowserSupabaseClient(supabaseAccessToken);
     const channel = supabase

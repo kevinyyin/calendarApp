@@ -1,9 +1,22 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
 import {
   mergeIncomingEvent,
   applyRealtimeEvent,
   removeEventById,
+  RealtimeMergedView,
 } from "@/components/RealtimeMergedView";
+
+// The component subscribes to Supabase Realtime in a mount effect — none of
+// these tests exercise that wiring, so it's stubbed out to a no-op channel.
+vi.mock("@/lib/supabase-client", () => ({
+  createBrowserSupabaseClient: () => ({
+    channel: () => ({ on: () => ({ subscribe: () => ({}) }) }),
+    removeChannel: () => {},
+  }),
+}));
+
+afterEach(cleanup);
 
 const calendarMeta = {
   "cal-1": { personUserId: "friend-1", personLabel: "Alice", color: "#111" },
@@ -156,5 +169,26 @@ describe("applyRealtimeEvent", () => {
     });
 
     expect(result).toEqual([existingRow]);
+  });
+});
+
+describe("RealtimeMergedView", () => {
+  it("re-syncs displayed events when the server sends fresh initialEvents on re-render", () => {
+    // Reproduces the "Hide"/"Show" toggle doing nothing visible: that button
+    // is a server action that calls revalidatePath("/"), which re-renders
+    // this already-mounted client component with a new `initialEvents` prop
+    // (the friend's events now excluded). `useState(initialEvents)` only
+    // consults its argument on the very first mount, so without an effect
+    // re-syncing `rows`, the stale event list would keep rendering forever.
+    const { rerender } = render(
+      <RealtimeMergedView initialEvents={[existingRow]} calendarMetaByRowId={calendarMeta} />,
+    );
+    expect(screen.getByText("Standup")).toBeTruthy();
+
+    rerender(
+      <RealtimeMergedView initialEvents={[]} calendarMetaByRowId={calendarMeta} />,
+    );
+
+    expect(screen.queryByText("Standup")).toBeNull();
   });
 });
