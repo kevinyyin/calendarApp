@@ -66,9 +66,9 @@ export default async function CalendarsPage() {
                   {isShared ? (
                     <SubmitButton
                       pendingText="Unsharing…"
-                      className="rounded-md bg-accent-muted px-3 py-1.5 text-sm font-medium text-accent transition active:scale-95 hover:bg-accent-muted/70 disabled:opacity-50"
+                      className="rounded-md bg-danger-muted px-3 py-1.5 text-sm font-medium text-danger transition active:scale-95 hover:opacity-80 disabled:opacity-50"
                     >
-                      Sharing
+                      Unshare
                     </SubmitButton>
                   ) : (
                     <ConfirmSubmitButton

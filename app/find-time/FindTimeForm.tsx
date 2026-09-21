@@ -80,10 +80,14 @@ export function FindTimeForm({ friendUsernames }: { friendUsernames: string[] })
             id="duration"
             type="number"
             min={1}
+            max={480}
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
             className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent"
           />
+          <p className="text-xs text-muted">
+            Only searches 8:00 AM – 10:00 PM in your local time each day.
+          </p>
         </div>
         <button
           type="submit"
