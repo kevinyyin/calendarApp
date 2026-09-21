@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth";
 import {
   sendFriendRequest as sendFriendRequestLib,
   respondToFriendRequest as respondLib,
+  cancelFriendRequest as cancelFriendRequestLib,
+  removeFriendship as removeFriendshipLib,
 } from "@/lib/friendships";
 import { revalidatePath } from "next/cache";
 
@@ -21,7 +23,7 @@ export async function sendFriendRequestAction(
 ): Promise<SendFriendRequestState> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "You must be signed in." };
-  const username = String(formData.get("username"));
+  const username = String(formData.get("username")).trim();
   const result = await sendFriendRequestLib(session.user.id, username);
   if (result.ok) {
     revalidatePath("/friends");
@@ -35,5 +37,21 @@ export async function respondToFriendRequestAction(formData: FormData) {
   const friendshipId = String(formData.get("friendshipId"));
   const accept = formData.get("accept") === "true";
   await respondLib(friendshipId, session.user.id, accept);
+  revalidatePath("/friends");
+}
+
+export async function cancelFriendRequestAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const friendshipId = String(formData.get("friendshipId"));
+  await cancelFriendRequestLib(friendshipId, session.user.id);
+  revalidatePath("/friends");
+}
+
+export async function removeFriendAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const friendshipId = String(formData.get("friendshipId"));
+  await removeFriendshipLib(friendshipId, session.user.id);
   revalidatePath("/friends");
 }

@@ -1,6 +1,8 @@
 import { getMyGoogleCalendars, getSharedCalendarIds, toggleShareCalendar } from "./actions";
 import { auth } from "@/lib/auth";
+import { getAcceptedFriendIds } from "@/lib/friendships";
 import { SubmitButton } from "@/components/SubmitButton";
+import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 
 export default async function CalendarsPage() {
   const session = await auth();
@@ -8,6 +10,9 @@ export default async function CalendarsPage() {
   const shared = session?.user?.id
     ? await getSharedCalendarIds(session.user.id)
     : new Set<string>();
+  const friendCount = session?.user?.id
+    ? (await getAcceptedFriendIds(session.user.id)).length
+    : 0;
 
   return (
     <main className="mx-auto max-w-lg px-6 py-10">
@@ -36,29 +41,48 @@ export default async function CalendarsPage() {
                 key={cal.id}
                 className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3"
               >
-                <span className="flex min-w-0 items-center text-sm text-foreground">
-                  <span
-                    aria-hidden="true"
-                    className="mr-2.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: cal.backgroundColor }}
-                  />
-                  <span className="truncate">{cal.summary}</span>
+                <span className="flex min-w-0 flex-col">
+                  <span className="flex items-center text-sm text-foreground">
+                    <span
+                      aria-hidden="true"
+                      className="mr-2.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: cal.backgroundColor }}
+                    />
+                    <span className="truncate">{cal.summary}</span>
+                  </span>
+                  {isShared && (
+                    <span className="ml-5 text-xs text-muted">
+                      {friendCount === 0
+                        ? "Not visible to anyone yet — you have no friends"
+                        : `Shared with ${friendCount} friend${friendCount === 1 ? "" : "s"}`}
+                    </span>
+                  )}
                 </span>
                 <form action={toggleShareCalendar} className="shrink-0">
                   <input type="hidden" name="googleCalendarId" value={cal.id} />
                   <input type="hidden" name="displayName" value={cal.summary} />
                   <input type="hidden" name="color" value={cal.backgroundColor} />
                   <input type="hidden" name="enable" value={(!isShared).toString()} />
-                  <SubmitButton
-                    pendingText={isShared ? "Unsharing…" : "Sharing…"}
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition active:scale-95 disabled:opacity-50 ${
-                      isShared
-                        ? "bg-accent-muted text-accent hover:bg-accent-muted/70"
-                        : "bg-accent text-accent-foreground hover:opacity-90"
-                    }`}
-                  >
-                    {isShared ? "Sharing" : "Share"}
-                  </SubmitButton>
+                  {isShared ? (
+                    <SubmitButton
+                      pendingText="Unsharing…"
+                      className="rounded-md bg-accent-muted px-3 py-1.5 text-sm font-medium text-accent transition active:scale-95 hover:bg-accent-muted/70 disabled:opacity-50"
+                    >
+                      Sharing
+                    </SubmitButton>
+                  ) : (
+                    <ConfirmSubmitButton
+                      confirmMessage={`Share "${cal.summary}" with ${
+                        friendCount === 0
+                          ? "your friends (you don't have any yet)"
+                          : `your ${friendCount} friend${friendCount === 1 ? "" : "s"}`
+                      }? They'll be able to see its events in their merged view.`}
+                      pendingText="Sharing…"
+                      className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground transition active:scale-95 hover:opacity-90 disabled:opacity-50"
+                    >
+                      Share
+                    </ConfirmSubmitButton>
+                  )}
                 </form>
               </li>
             );

@@ -2,10 +2,15 @@ import { db } from "@/db/client";
 import { friendships, users } from "@/db/schema";
 import { and, eq, or } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { respondToFriendRequestAction } from "./actions";
+import {
+  respondToFriendRequestAction,
+  cancelFriendRequestAction,
+  removeFriendAction,
+} from "./actions";
 import { FriendRequestForm } from "./FriendRequestForm";
 import { UsernameForm } from "./UsernameForm";
 import { SubmitButton } from "@/components/SubmitButton";
+import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 
 export default async function FriendsPage() {
   const session = await auth();
@@ -23,8 +28,14 @@ export default async function FriendsPage() {
     .innerJoin(users, eq(friendships.requesterId, users.id))
     .where(and(eq(friendships.recipientId, userId), eq(friendships.status, "pending")));
 
+  const pendingOutgoing = await db
+    .select({ id: friendships.id, recipientUsername: users.username })
+    .from(friendships)
+    .innerJoin(users, eq(friendships.recipientId, users.id))
+    .where(and(eq(friendships.requesterId, userId), eq(friendships.status, "pending")));
+
   const accepted = await db
-    .select({ friendUsername: users.username })
+    .select({ id: friendships.id, friendUsername: users.username })
     .from(friendships)
     .innerJoin(
       users,
@@ -88,6 +99,36 @@ export default async function FriendsPage() {
         </section>
       )}
 
+      {pendingOutgoing.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-2 text-sm font-semibold text-foreground">
+            Sent requests
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {pendingOutgoing.map((req) => (
+              <li
+                key={req.id}
+                className="flex items-center justify-between rounded-lg border border-border bg-surface p-3"
+              >
+                <span className="text-sm text-foreground">
+                  {req.recipientUsername}{" "}
+                  <span className="text-muted">— awaiting response</span>
+                </span>
+                <form action={cancelFriendRequestAction}>
+                  <input type="hidden" name="friendshipId" value={req.id} />
+                  <SubmitButton
+                    pendingText="Cancelling…"
+                    className="rounded-md bg-surface-muted px-3 py-1 text-sm font-medium text-muted transition active:scale-95 hover:text-foreground disabled:opacity-50"
+                  >
+                    Cancel
+                  </SubmitButton>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section>
         <h2 className="mb-2 text-sm font-semibold text-foreground">Friends</h2>
         {accepted.length === 0 ? (
@@ -99,12 +140,22 @@ export default async function FriendsPage() {
           </div>
         ) : (
           <ul className="flex flex-col gap-2">
-            {accepted.map((f, i) => (
+            {accepted.map((f) => (
               <li
-                key={i}
-                className="rounded-lg border border-border bg-surface p-3 text-sm text-foreground"
+                key={f.id}
+                className="flex items-center justify-between rounded-lg border border-border bg-surface p-3 text-sm text-foreground"
               >
                 {f.friendUsername}
+                <form action={removeFriendAction}>
+                  <input type="hidden" name="friendshipId" value={f.id} />
+                  <ConfirmSubmitButton
+                    confirmMessage={`Remove ${f.friendUsername ?? "this friend"}? They'll stop seeing your shared calendars, and you'll stop seeing theirs.`}
+                    pendingText="Removing…"
+                    className="rounded-md bg-surface-muted px-3 py-1 text-sm font-medium text-muted transition active:scale-95 hover:text-foreground disabled:opacity-50"
+                  >
+                    Remove
+                  </ConfirmSubmitButton>
+                </form>
               </li>
             ))}
           </ul>

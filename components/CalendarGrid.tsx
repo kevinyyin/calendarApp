@@ -1,3 +1,5 @@
+import { formatEventRange } from "@/lib/format-datetime";
+
 type MergedEvent = {
   personUserId: string;
   personLabel: string;
@@ -35,7 +37,7 @@ export function CalendarGrid({ events }: { events: MergedEvent[] }) {
             style={{ backgroundColor: event.color }}
           />
           <span className="whitespace-nowrap text-sm text-muted">
-            {event.startAt.toLocaleString()} – {event.endAt.toLocaleTimeString()}
+            {formatEventRange(event.startAt, event.endAt)}
           </span>
           <span className="font-medium text-foreground">{event.title}</span>
           <span className="text-sm text-muted">({event.personLabel})</span>

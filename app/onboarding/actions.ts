@@ -3,7 +3,7 @@
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { validateUsername } from "./validate-username";
@@ -35,11 +35,16 @@ export async function setUsername(
   // Excludes the current user's own row: without this, re-saving your own
   // unchanged username (e.g. clicking "Save" on the Friends page without
   // editing the field) would find your own existing row and reject it as
-  // "already taken."
+  // "already taken." Case-insensitive so this stays consistent with
+  // sendFriendRequest's lookup (lib/friendships.ts) — otherwise "Alice" and
+  // "alice" could coexist as two users, and a case-insensitive friend-request
+  // lookup for "alice" would be ambiguous between them.
   const existing = await db
     .select()
     .from(users)
-    .where(and(eq(users.username, username), ne(users.id, session.user.id)));
+    .where(
+      and(eq(sql`lower(${users.username})`, username.toLowerCase()), ne(users.id, session.user.id)),
+    );
   if (existing.length > 0) {
     return { ok: false as const, error: "Username is already taken" };
   }

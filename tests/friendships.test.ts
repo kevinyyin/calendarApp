@@ -53,6 +53,36 @@ function evaluateCondition(node: unknown, row: Row): boolean {
     return evaluateCondition(chunks[1], row);
   }
 
+  // eq(sql`lower(${column})`, value): lib/friendships.ts's case-insensitive
+  // username lookup. Same 5-chunk shape as a plain eq, but chunks[1] is
+  // itself the nested SQL node for `lower(${column})` — queryChunks
+  // [StringChunk("lower("), Column, StringChunk(")")] — rather than a bare
+  // Column, and the compared value is a raw string (not Param-wrapped),
+  // both confirmed by inspecting drizzle-orm's actual output for this
+  // exact call shape rather than assumed.
+  if (
+    chunks.length === 5 &&
+    is(chunks[1], SQL) &&
+    chunks[1].queryChunks.length === 3 &&
+    is(chunks[1].queryChunks[0], StringChunk) &&
+    chunks[1].queryChunks[0].value[0] === "lower(" &&
+    is(chunks[1].queryChunks[1], Column) &&
+    is(chunks[1].queryChunks[2], StringChunk) &&
+    chunks[1].queryChunks[2].value[0] === ")" &&
+    is(chunks[2], StringChunk) &&
+    chunks[2].value[0] === " = "
+  ) {
+    const field = toCamel(chunks[1].queryChunks[1].name);
+    const rawValue = row[field];
+    const paramNode = chunks[3];
+    const compareValue = is(paramNode, Param) ? paramNode.value : paramNode;
+    return (
+      typeof rawValue === "string" &&
+      typeof compareValue === "string" &&
+      rawValue.toLowerCase() === compareValue.toLowerCase()
+    );
+  }
+
   // A single eq/ne(column, value): built by `sql`${column} = ${param}`` as
   // [StringChunk(""), Column, StringChunk(" = "), Param, StringChunk("")]
   // (`ne` is identical but with a " <> " separator).
@@ -119,12 +149,21 @@ vi.mock("@/db/client", () => ({
         }),
       })),
     })),
+    delete: vi.fn(() => ({
+      where: vi.fn(async (condition: unknown) => {
+        state.friendships = state.friendships.filter(
+          (row) => !evaluateCondition(condition, row),
+        );
+      }),
+    })),
   },
 }));
 
 import {
   sendFriendRequest,
   respondToFriendRequest,
+  cancelFriendRequest,
+  removeFriendship,
   getAcceptedFriendIds,
 } from "@/lib/friendships";
 
@@ -218,6 +257,16 @@ describe("sendFriendRequest", () => {
     expect(result).toEqual({ ok: true });
     expect(state.friendships).toHaveLength(2);
   });
+
+  it("finds the recipient regardless of case, and trims surrounding whitespace", async () => {
+    const result = await sendFriendRequest("user-a", "  BoB  ");
+
+    expect(result).toEqual({ ok: true });
+    expect(state.friendships[0]).toMatchObject({
+      requesterId: "user-a",
+      recipientId: "user-b",
+    });
+  });
 });
 
 describe("respondToFriendRequest", () => {
@@ -299,5 +348,83 @@ describe("getAcceptedFriendIds", () => {
     state.friendships = [];
     const result = await getAcceptedFriendIds("user-a");
     expect(result).toEqual([]);
+  });
+});
+
+describe("cancelFriendRequest", () => {
+  beforeEach(() => {
+    resetState();
+    state.friendships = [
+      { id: "f-1", requesterId: "user-a", recipientId: "user-b", status: "pending" },
+    ];
+  });
+
+  it("deletes a pending request when the requester cancels it", async () => {
+    const result = await cancelFriendRequest("f-1", "user-a");
+    expect(result).toEqual({ ok: true });
+    expect(state.friendships).toHaveLength(0);
+  });
+
+  it("refuses to cancel a request that isn't yours", async () => {
+    // The recipient (user-b) is not the requester and must not be able to
+    // cancel a request sent TO them — that's what decline is for.
+    const result = await cancelFriendRequest("f-1", "user-b");
+    expect(result.ok).toBe(false);
+    expect(state.friendships).toHaveLength(1);
+  });
+
+  it("refuses to cancel a request that's already been answered", async () => {
+    state.friendships[0].status = "accepted";
+    const result = await cancelFriendRequest("f-1", "user-a");
+    expect(result.ok).toBe(false);
+    expect(state.friendships).toHaveLength(1);
+  });
+
+  it("returns an error when the friendship does not exist", async () => {
+    const result = await cancelFriendRequest("missing", "user-a");
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe("removeFriendship", () => {
+  beforeEach(() => {
+    resetState();
+    state.friendships = [
+      { id: "f-1", requesterId: "user-a", recipientId: "user-b", status: "accepted" },
+    ];
+  });
+
+  it("deletes an accepted friendship when the requester removes it", async () => {
+    const result = await removeFriendship("f-1", "user-a");
+    expect(result).toEqual({ ok: true });
+    expect(state.friendships).toHaveLength(0);
+  });
+
+  it("deletes an accepted friendship when the recipient removes it", async () => {
+    // Either party can end an accepted friendship, not just whoever sent
+    // the original request.
+    const result = await removeFriendship("f-1", "user-b");
+    expect(result).toEqual({ ok: true });
+    expect(state.friendships).toHaveLength(0);
+  });
+
+  it("refuses to remove a friendship you're not part of", async () => {
+    const result = await removeFriendship("f-1", "user-c");
+    expect(result.ok).toBe(false);
+    expect(state.friendships).toHaveLength(1);
+  });
+
+  it("refuses to remove a still-pending request", async () => {
+    // A pending request goes through cancelFriendRequest (sender) or
+    // respondToFriendRequest (recipient), not removeFriendship.
+    state.friendships[0].status = "pending";
+    const result = await removeFriendship("f-1", "user-a");
+    expect(result.ok).toBe(false);
+    expect(state.friendships).toHaveLength(1);
+  });
+
+  it("returns an error when the friendship does not exist", async () => {
+    const result = await removeFriendship("missing", "user-a");
+    expect(result.ok).toBe(false);
   });
 });
