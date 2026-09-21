@@ -79,7 +79,9 @@ export default async function CalendarsPage() {
                           friendCount === 0
                             ? "your friends (you don't have any yet)"
                             : `your ${friendCount} friend${friendCount === 1 ? "" : "s"}`
-                        }? They'll be able to see its events in their merged view.`}
+                        }? They'll be able to see its events in their merged view — including any friend you add later.`}
+                        confirmLabel="Yes, share"
+                        variant="accent"
                         pendingText="Sharing…"
                         className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:opacity-90 disabled:opacity-50"
                       >

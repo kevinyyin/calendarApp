@@ -1,16 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { findSlotsForCurrentUser } from "./find-slots-action";
 import { Spinner } from "@/components/Spinner";
 import { formatEventRange } from "@/lib/format-datetime";
 
+// "Find a time" is a repeated, specific-group task ("when can the four of us
+// actually meet") per PRODUCT.md, not a one-off — re-checking the same
+// friends on every visit is pure extraneous load. Persisted client-side only
+// (a per-device convenience, not app state), so every read/write is
+// try/catch-guarded and the form works identically if storage throws or is
+// unavailable (private browsing, blocked site data, SSR).
+const SELECTED_FRIENDS_STORAGE_KEY = "overlap.findTime.selectedFriends";
+
+function loadSavedFriends(): Set<string> {
+  try {
+    const raw = window.localStorage.getItem(SELECTED_FRIENDS_STORAGE_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? new Set(parsed.filter((v) => typeof v === "string")) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveSelectedFriends(selected: Set<string>) {
+  try {
+    window.localStorage.setItem(SELECTED_FRIENDS_STORAGE_KEY, JSON.stringify([...selected]));
+  } catch {
+    // Storage unavailable/blocked/full — the selection still works for this
+    // session, it just won't be remembered next visit.
+  }
+}
+
 export function FindTimeForm({ friendUsernames }: { friendUsernames: string[] }) {
   const [slots, setSlots] = useState<{ start: Date; end: Date }[]>([]);
+  // Starts empty on both server and first client render — reading
+  // localStorage has to wait for the mount effect below, or the value the
+  // client hydrates with (from the browser's saved selection) would mismatch
+  // the server-rendered markup (which never sees localStorage at all).
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [duration, setDuration] = useState(60);
   const [hasSearched, setHasSearched] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  // Guards the save effect below from firing with the empty initial state
+  // before the load effect has had a chance to populate it — otherwise the
+  // very first commit would overwrite a real saved selection with "[]".
+  const loadedFromStorage = useRef(false);
+
+  useEffect(() => {
+    const saved = loadSavedFriends();
+    const validUsernames = new Set(friendUsernames);
+    // react-hooks/set-state-in-effect prefers deriving state during render or
+    // syncing via useSyncExternalStore, but localStorage is categorically
+    // unreadable during SSR/first-paint — this one-time post-hydration read
+    // is the standard escape hatch for exactly that case, and a full
+    // external-store subscription would be needless weight for a per-device
+    // "remember my last picks" convenience with no cross-tab requirement.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelected(new Set([...saved].filter((u) => validUsernames.has(u))));
+    loadedFromStorage.current = true;
+    // Deliberately mount-only: friendUsernames comes from the server and
+    // doesn't change for the lifetime of this page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!loadedFromStorage.current) return;
+    saveSelectedFriends(selected);
+  }, [selected]);
 
   function toggleFriend(username: string) {
     setSelected((prev) => {

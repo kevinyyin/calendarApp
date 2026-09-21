@@ -38,7 +38,7 @@ export function HomeLanding() {
         style={{ background: "radial-gradient(circle, var(--accent), transparent 70%)" }}
       />
 
-      <span className="absolute left-6 top-6 text-sm font-semibold tracking-tight text-accent sm:left-8 sm:top-8">
+      <span className="absolute left-6 top-6 text-xs font-semibold uppercase tracking-[0.2em] text-accent sm:left-8 sm:top-8">
         Overlap
       </span>
 

@@ -149,6 +149,8 @@ export default async function FriendsPage() {
                     <input type="hidden" name="friendshipId" value={f.id} />
                     <ConfirmSubmitButton
                       confirmMessage={`Remove ${f.friendUsername ?? "this friend"}? They'll stop seeing your shared calendars, and you'll stop seeing theirs.`}
+                      confirmLabel="Yes, remove"
+                      variant="danger"
                       pendingText="Removing…"
                       className="rounded-full bg-danger-muted px-4 py-2 text-sm font-medium text-danger transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:opacity-80 disabled:opacity-50"
                     >
