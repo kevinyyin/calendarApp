@@ -9,10 +9,14 @@ import { getVisibleCalendars } from "@/lib/visibility";
 import { RealtimeMergedView } from "@/components/RealtimeMergedView";
 import { toggleFriendVisibility } from "@/app/actions/merged-view";
 import { SubmitButton } from "@/components/SubmitButton";
+import { HomeLanding } from "./HomeLanding";
 
 export default async function HomePage() {
   const session = await auth();
-  if (!session?.user?.id) return null;
+  // "/" is public (see proxy.ts) precisely so this branch can run: a signed
+  // -out visitor gets the real landing page here instead of the app just
+  // 404-ing or bouncing them to a bare sign-in form with no context.
+  if (!session?.user?.id) return <HomeLanding />;
 
   const now = new Date();
   const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
