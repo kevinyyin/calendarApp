@@ -31,7 +31,7 @@ export function UsernameForm({ currentUsername }: { currentUsername: string | nu
         />
         <SubmitButton
           pendingText="Saving…"
-          className="w-fit rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:opacity-90 disabled:opacity-50"
+          className="w-fit rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground shadow-[var(--shadow-soft)] transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:opacity-90 hover:shadow-[var(--shadow-lifted)] disabled:opacity-50"
         >
           Save
         </SubmitButton>

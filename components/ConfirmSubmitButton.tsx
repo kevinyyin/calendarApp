@@ -16,6 +16,7 @@ export function ConfirmSubmitButton({
   variant = "accent",
   children,
   className,
+  "aria-label": ariaLabel,
 }: {
   confirmMessage: string;
   confirmLabel?: string;
@@ -23,6 +24,7 @@ export function ConfirmSubmitButton({
   variant?: "accent" | "danger";
   children: React.ReactNode;
   className?: string;
+  "aria-label"?: string;
 }) {
   const [confirming, setConfirming] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -35,7 +37,12 @@ export function ConfirmSubmitButton({
 
   if (!confirming) {
     return (
-      <button type="button" className={className} onClick={() => setConfirming(true)}>
+      <button
+        type="button"
+        className={className}
+        aria-label={ariaLabel}
+        onClick={() => setConfirming(true)}
+      >
         {children}
       </button>
     );

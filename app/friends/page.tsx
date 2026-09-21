@@ -2,15 +2,9 @@ import { db } from "@/db/client";
 import { friendships, users } from "@/db/schema";
 import { and, eq, or } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import {
-  respondToFriendRequestAction,
-  cancelFriendRequestAction,
-  removeFriendAction,
-} from "./actions";
 import { FriendRequestForm } from "./FriendRequestForm";
 import { UsernameForm } from "./UsernameForm";
-import { SubmitButton } from "@/components/SubmitButton";
-import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { PendingRequestRow, SentRequestRow, FriendRow } from "./FriendRequestRows";
 import { Badge } from "@/components/Badge";
 
 export default async function FriendsPage() {
@@ -80,34 +74,11 @@ export default async function FriendsPage() {
                 </h2>
                 <ul className="flex flex-col divide-y divide-border border-y border-border">
                   {pendingIncoming.map((req) => (
-                    <li
+                    <PendingRequestRow
                       key={req.id}
-                      className="flex items-center justify-between gap-4 py-3.5 first:pt-2.5 last:pb-2.5"
-                    >
-                      <span className="text-sm font-medium text-foreground">{req.requesterUsername}</span>
-                      <div className="flex gap-2">
-                        <form action={respondToFriendRequestAction}>
-                          <input type="hidden" name="friendshipId" value={req.id} />
-                          <input type="hidden" name="accept" value="true" />
-                          <SubmitButton
-                            pendingText="Accepting…"
-                            className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:opacity-90 disabled:opacity-50"
-                          >
-                            Accept
-                          </SubmitButton>
-                        </form>
-                        <form action={respondToFriendRequestAction}>
-                          <input type="hidden" name="friendshipId" value={req.id} />
-                          <input type="hidden" name="accept" value="false" />
-                          <SubmitButton
-                            pendingText="Declining…"
-                            className="rounded-full bg-danger-muted px-4 py-2 text-sm font-medium text-danger transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:opacity-80 disabled:opacity-50"
-                          >
-                            Decline
-                          </SubmitButton>
-                        </form>
-                      </div>
-                    </li>
+                      friendshipId={req.id}
+                      requesterUsername={req.requesterUsername ?? ""}
+                    />
                   ))}
                 </ul>
               </section>
@@ -122,24 +93,11 @@ export default async function FriendsPage() {
                 </h2>
                 <ul className="flex flex-col divide-y divide-border border-y border-border">
                   {pendingOutgoing.map((req) => (
-                    <li
+                    <SentRequestRow
                       key={req.id}
-                      className="flex items-center justify-between gap-4 py-3.5 first:pt-2.5 last:pb-2.5"
-                    >
-                      <span className="text-sm text-foreground">
-                        {req.recipientUsername}{" "}
-                        <span className="text-muted">— awaiting response</span>
-                      </span>
-                      <form action={cancelFriendRequestAction}>
-                        <input type="hidden" name="friendshipId" value={req.id} />
-                        <SubmitButton
-                          pendingText="Cancelling…"
-                          className="rounded-full bg-surface-muted px-4 py-2 text-sm font-medium text-muted transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:text-foreground disabled:opacity-50"
-                        >
-                          Cancel
-                        </SubmitButton>
-                      </form>
-                    </li>
+                      friendshipId={req.id}
+                      recipientUsername={req.recipientUsername ?? ""}
+                    />
                   ))}
                 </ul>
               </section>
@@ -157,24 +115,7 @@ export default async function FriendsPage() {
               ) : (
                 <ul className="flex flex-col divide-y divide-border border-y border-border">
                   {accepted.map((f) => (
-                    <li
-                      key={f.id}
-                      className="flex items-center justify-between gap-4 py-3.5 text-sm font-medium text-foreground first:pt-2.5 last:pb-2.5"
-                    >
-                      {f.friendUsername}
-                      <form action={removeFriendAction}>
-                        <input type="hidden" name="friendshipId" value={f.id} />
-                        <ConfirmSubmitButton
-                          confirmMessage={`Remove ${f.friendUsername ?? "this friend"}? They'll stop seeing your shared calendars, and you'll stop seeing theirs.`}
-                          confirmLabel="Yes, remove"
-                          variant="danger"
-                          pendingText="Removing…"
-                          className="rounded-full bg-danger-muted px-4 py-2 text-sm font-medium text-danger transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:opacity-80 disabled:opacity-50"
-                        >
-                          Remove
-                        </ConfirmSubmitButton>
-                      </form>
-                    </li>
+                    <FriendRow key={f.id} friendshipId={f.id} friendUsername={f.friendUsername ?? ""} />
                   ))}
                 </ul>
               )}

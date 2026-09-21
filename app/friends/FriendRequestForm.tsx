@@ -18,12 +18,20 @@ export function FriendRequestForm() {
   }, [state]);
 
   return (
-    <div className="mb-12">
+    <section>
+      <h2 className="mb-3 text-sm font-semibold text-foreground">Add a friend</h2>
       <form ref={formRef} action={formAction} className="flex gap-2.5">
+        <label htmlFor="friend-request-username" className="sr-only">
+          Username
+        </label>
         <input
+          id="friend-request-username"
           name="username"
           placeholder="username"
           required
+          minLength={3}
+          pattern="[a-zA-Z0-9_]+"
+          autoComplete="off"
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "friend-request-error" : undefined}
           className={`flex-1 rounded-xl border bg-surface px-4 py-2.5 text-sm text-foreground outline-none transition-colors duration-200 focus:border-accent ${
@@ -32,7 +40,7 @@ export function FriendRequestForm() {
         />
         <SubmitButton
           pendingText="Sending…"
-          className="shrink-0 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:opacity-90 disabled:opacity-50"
+          className="shrink-0 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground shadow-[var(--shadow-soft)] transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:opacity-90 hover:shadow-[var(--shadow-lifted)] disabled:opacity-50"
         >
           Send request
         </SubmitButton>
@@ -42,6 +50,6 @@ export function FriendRequestForm() {
           {error}
         </p>
       )}
-    </div>
+    </section>
   );
 }
