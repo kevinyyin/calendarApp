@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { getAcceptedFriendIds } from "@/lib/friendships";
 import { SubmitButton } from "@/components/SubmitButton";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { Badge } from "@/components/Badge";
 
 export default async function CalendarsPage() {
   const session = await auth();
@@ -13,15 +14,24 @@ export default async function CalendarsPage() {
   const friendCount = session?.user?.id
     ? (await getAcceptedFriendIds(session.user.id)).length
     : 0;
+  const sharedCount = calendars.filter((cal) => shared.has(cal.id)).length;
 
   return (
-    <main className="mx-auto max-w-lg px-6 py-16 sm:py-20">
+    <main className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
       <div className="animate-rise-in">
-        <div className="mb-10">
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+        <div className="mb-12 flex flex-col gap-3 sm:mb-16">
+          <div className="flex flex-wrap gap-2">
+            <Badge tone="outline">
+              {sharedCount} of {calendars.length} shared
+            </Badge>
+            <Badge tone="outline">
+              {friendCount} friend{friendCount === 1 ? "" : "s"}
+            </Badge>
+          </div>
+          <h1 className="text-headline font-semibold text-foreground">
             Your Google calendars
           </h1>
-          <p className="mt-2 text-base leading-relaxed text-muted">
+          <p className="max-w-md text-base leading-relaxed text-muted">
             Choose which calendars friends can see in your merged view.
             Everything else stays private.
           </p>
@@ -36,15 +46,15 @@ export default async function CalendarsPage() {
             </p>
           </div>
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col divide-y divide-border border-y border-border">
             {calendars.map((cal) => {
               const isShared = shared.has(cal.id);
               return (
                 <li
                   key={cal.id}
-                  className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-soft)] transition-shadow duration-300 ease-[var(--ease-premium)] hover:shadow-[var(--shadow-lifted)]"
+                  className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-5 first:pt-3 last:pb-3"
                 >
-                  <span className="flex min-w-0 flex-col gap-1">
+                  <span className="flex min-w-0 flex-col gap-2">
                     <span className="flex items-center text-sm font-medium text-foreground">
                       <span
                         aria-hidden="true"
@@ -54,11 +64,11 @@ export default async function CalendarsPage() {
                       <span className="truncate">{cal.summary}</span>
                     </span>
                     {isShared && (
-                      <span className="ml-5 text-xs text-muted">
+                      <Badge tone="accent" className="ml-5 w-fit">
                         {friendCount === 0
-                          ? "Not visible to anyone yet — you have no friends"
+                          ? "Not visible yet — no friends"
                           : `Shared with ${friendCount} friend${friendCount === 1 ? "" : "s"}`}
-                      </span>
+                      </Badge>
                     )}
                   </span>
                   <form action={toggleShareCalendar} className="shrink-0">

@@ -1,25 +1,47 @@
 @import "tailwindcss";
 
 /*
-  Overlap — visual world (2026-09-21)
+  Overlap — visual world (2026-09-21, structure amendment 2026-09-21,
+  palette amendment 2026-09-21 — "Stormy morning")
   Apple's marketing restraint (type scale, whitespace, motion quality)
   adapted for an Operate-mode task app, calibrated warmer and more tactile
-  by Things 3 / Fantastical. Warm neutrals (never cold slate/blue-black), a
-  single deep-pine accent, one typeface throughout, generous space, and an
+  by Things 3 / Fantastical. One typeface throughout, generous space, and an
   exponential ease-out used once per surface rather than scattered fades.
   See PRODUCT.md's Brand Commitments for the standing direction.
+
+  Structure amendment: raised the type scale (display/headline tokens
+  below), introduced a meta-rail + content grid on wide viewports in place
+  of one centered column, and replaced repeated shadow-card list rows with
+  hairline-divided editorial rows — flat cards read as generic list chrome;
+  a divider reads as a considered list. Standalone single-item panels
+  (empty states, the username editor) keep the soft-shadow card treatment,
+  since that ban is about repeated same-size cards standing in for
+  structure, not cards themselves.
+
+  Palette amendment: replaced the warm-ivory/pine-teal family with a
+  user-supplied "Stormy morning" blue-gray board (#6A89A7 / #BDDDFC /
+  #88BDF2 / #384959). All four anchors are used directly: #384959 (dark
+  navy-slate) as the accent — white text on it hits ~9.3:1 contrast — and
+  as dark-mode's foreground; #88BDF2 (sky blue) as dark-mode's accent
+  (dark-navy text on it hits ~4.7:1); #BDDDFC (pale misty blue) as
+  accent-muted and light-mode's surface-muted; #6A89A7 (blue-gray) as the
+  base hue for muted text, darkened slightly (to #557089) so small
+  secondary/caption text still clears 4.5:1 against the near-white
+  background — the raw swatch alone sits closer to 3.4:1. Background/
+  surface/border are light near-white or dark near-navy tints derived from
+  the same cool family, since the source board didn't include those roles.
 */
 
 :root {
-  --background: #faf8f5;
+  --background: #f4f8fc;
   --surface: #ffffff;
-  --surface-muted: #f2ede6;
-  --foreground: #211d19;
-  --muted: #746b60;
-  --border: #e6ded3;
-  --accent: #0f766e;
+  --surface-muted: #bdddfc;
+  --foreground: #384959;
+  --muted: #557089;
+  --border: #cfe0ef;
+  --accent: #384959;
   --accent-foreground: #ffffff;
-  --accent-muted: #e3f2ef;
+  --accent-muted: #bdddfc;
   --danger: #b3452f;
   --danger-muted: #fbeee9;
   --success: #3f7a52;
@@ -28,8 +50,8 @@
   --warning-border: #ecd8b3;
 
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
-  --shadow-soft: 0 1px 2px rgba(33, 29, 25, 0.04), 0 8px 24px -12px rgba(33, 29, 25, 0.12);
-  --shadow-lifted: 0 2px 4px rgba(33, 29, 25, 0.05), 0 16px 40px -16px rgba(33, 29, 25, 0.22);
+  --shadow-soft: 0 1px 2px rgba(56, 73, 89, 0.05), 0 8px 24px -12px rgba(56, 73, 89, 0.14);
+  --shadow-lifted: 0 2px 4px rgba(56, 73, 89, 0.06), 0 16px 40px -16px rgba(56, 73, 89, 0.26);
 }
 
 @theme inline {
@@ -50,19 +72,32 @@
   --color-warning-border: var(--warning-border);
   --font-sans: var(--font-jakarta);
   --ease-premium: var(--ease-premium);
+
+  /* Editorial type scale (2026-09-21 structure amendment). Display/headline
+     sit far larger than the original 3xl/4xl page titles — the "no
+     personality" complaint was largely a scale problem, not a palette one —
+     while staying inside the craft floor's 6rem display ceiling. */
+  --text-display: clamp(3rem, 6vw, 5.25rem);
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.03em;
+  --text-headline: clamp(2.25rem, 4.5vw, 3.5rem);
+  --text-headline--line-height: 1.05;
+  --text-headline--letter-spacing: -0.025em;
+  --text-tag: 0.75rem;
+  --text-tag--line-height: 1;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1a1613;
-    --surface: #221d19;
-    --surface-muted: #2b2521;
-    --foreground: #f3ede4;
-    --muted: #a89d90;
-    --border: #3a332c;
-    --accent: #4fd1c1;
-    --accent-foreground: #16211f;
-    --accent-muted: #1d2f2c;
+    --background: #141c24;
+    --surface: #1c2733;
+    --surface-muted: #243040;
+    --foreground: #eaf1f8;
+    --muted: #93a9bd;
+    --border: #2f3d4d;
+    --accent: #88bdf2;
+    --accent-foreground: #16212c;
+    --accent-muted: #1d3247;
     --danger: #e2957c;
     --danger-muted: #33221c;
     --success: #86c79a;

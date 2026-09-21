@@ -36,7 +36,7 @@ export default async function FindTimePage() {
       <main className="mx-auto max-w-lg px-6 py-16 sm:py-20">
         <div className="animate-rise-in">
           <div className="mb-10">
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Find a time</h1>
+            <h1 className="text-headline font-semibold text-foreground">Find a time</h1>
           </div>
           <div className="rounded-2xl border border-dashed border-border p-10 text-center">
             <p className="text-sm font-medium text-foreground">No friends yet</p>

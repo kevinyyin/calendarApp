@@ -1,4 +1,5 @@
 import { formatEventRange } from "@/lib/format-datetime";
+import { Badge } from "@/components/Badge";
 
 type MergedEvent = {
   personUserId: string;
@@ -168,22 +169,17 @@ export function CalendarGrid({ events }: { events: MergedEvent[] }) {
         <div key={day.key}>
           <h2 className="mb-3 text-sm font-semibold text-foreground">{day.heading}</h2>
           <DayTimeline events={day.events} band={dayBand(day.events)} />
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col divide-y divide-border border-y border-border">
             {day.events.map((event, i) => (
               <li
                 key={i}
-                className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-border bg-surface p-4 shadow-[var(--shadow-soft)] transition-shadow duration-300 ease-[var(--ease-premium)] hover:shadow-[var(--shadow-lifted)]"
+                className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-3.5 first:pt-2.5 last:pb-2.5"
               >
-                <span
-                  aria-hidden="true"
-                  className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: event.color }}
-                />
                 <span className="tabular-nums whitespace-nowrap text-sm text-muted">
                   {formatEventRange(event.startAt, event.endAt)}
                 </span>
                 <span className="font-medium text-foreground">{event.title}</span>
-                <span className="text-sm text-muted">({event.personLabel})</span>
+                <Badge dotColor={event.color}>{event.personLabel}</Badge>
               </li>
             ))}
           </ul>

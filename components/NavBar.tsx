@@ -24,7 +24,7 @@ export function NavBar({
     <header className="sticky top-0 z-10 border-b border-border bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
-          <span className="mr-4 shrink-0 text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+          <span className="mr-5 shrink-0 text-sm font-semibold uppercase tracking-[0.2em] text-accent">
             Overlap
           </span>
           <nav className="flex items-center gap-1">

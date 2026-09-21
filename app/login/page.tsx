@@ -1,5 +1,6 @@
 import { signIn } from "@/lib/auth";
 import { SubmitButton } from "@/components/SubmitButton";
+import { Badge } from "@/components/Badge";
 
 export default function LoginPage() {
   return (
@@ -15,14 +16,18 @@ export default function LoginPage() {
       </span>
 
       <div className="animate-rise-in relative flex w-full max-w-sm flex-col items-center gap-10 text-center">
-        <div className="flex flex-col items-center gap-5">
-          <h1 className="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+        <div className="flex flex-col items-center gap-6">
+          <h1 className="text-balance text-display font-semibold text-foreground">
             See when you&apos;re both free
           </h1>
           <p className="max-w-xs text-balance text-base leading-relaxed text-muted">
             Connect your Google Calendar to view friends&apos; shared schedules
             and find a time that works for everyone.
           </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Badge tone="outline">Google OAuth</Badge>
+            <Badge tone="outline">Read-only access</Badge>
+          </div>
         </div>
 
         <form

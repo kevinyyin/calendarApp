@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { findSlotsForCurrentUser } from "./find-slots-action";
 import { Spinner } from "@/components/Spinner";
+import { Badge } from "@/components/Badge";
 import { formatEventRange } from "@/lib/format-datetime";
 
 // "Find a time" is a repeated, specific-group task ("when can the four of us
@@ -103,9 +104,12 @@ export function FindTimeForm({ friendUsernames }: { friendUsernames: string[] })
   return (
     <main className="mx-auto max-w-lg px-6 py-16 sm:py-20">
       <div className="animate-rise-in">
-        <div className="mb-10">
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Find a time</h1>
-          <p className="mt-2 text-base leading-relaxed text-muted">
+        <div className="mb-10 flex flex-col gap-3">
+          <Badge tone="outline" className="w-fit">
+            Next two weeks
+          </Badge>
+          <h1 className="text-headline font-semibold text-foreground">Find a time</h1>
+          <p className="max-w-md text-base leading-relaxed text-muted">
             Search the next two weeks for a slot that&apos;s free on everyone&apos;s
             calendar.
           </p>
@@ -171,11 +175,11 @@ export function FindTimeForm({ friendUsernames }: { friendUsernames: string[] })
         )}
 
         {slots.length > 0 && (
-          <ul className="mt-10 flex flex-col gap-2">
+          <ul className="mt-10 flex flex-col divide-y divide-border border-y border-border">
             {slots.map((slot, i) => (
               <li
                 key={i}
-                className="tabular-nums rounded-xl border border-border bg-surface p-4 text-sm text-foreground shadow-[var(--shadow-soft)]"
+                className="tabular-nums py-3.5 text-sm text-foreground first:pt-2.5 last:pb-2.5"
               >
                 {formatEventRange(slot.start, slot.end)}
               </li>

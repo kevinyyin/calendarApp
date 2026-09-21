@@ -9,7 +9,10 @@ import { getVisibleCalendars } from "@/lib/visibility";
 import { RealtimeMergedView } from "@/components/RealtimeMergedView";
 import { toggleFriendVisibility } from "@/app/actions/merged-view";
 import { SubmitButton } from "@/components/SubmitButton";
+import { Badge } from "@/components/Badge";
 import { HomeLanding } from "./HomeLanding";
+
+const rangeFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
 export default async function HomePage() {
   const session = await auth();
@@ -51,61 +54,71 @@ export default async function HomePage() {
   const hasFriends = friendsByUserId.size > 0;
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16 sm:py-20">
+    <main className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
       <div className="animate-rise-in">
-        <div className="mb-10">
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">This week</h1>
-          <p className="mt-2 text-base leading-relaxed text-muted">
+        <div className="mb-12 flex flex-col gap-3 sm:mb-16">
+          <Badge tone="outline" className="w-fit tabular-nums">
+            {rangeFormatter.format(now)} – {rangeFormatter.format(weekFromNow)}
+          </Badge>
+          <h1 className="text-headline font-semibold text-foreground">This week</h1>
+          <p className="max-w-md text-base leading-relaxed text-muted">
             Your events, merged with every friend who&apos;s sharing a calendar
             with you.
           </p>
         </div>
 
-        {hasFriends ? (
-          <div className="mb-10 flex flex-wrap gap-2.5">
-            {[...friendsByUserId.entries()].map(([friendId, label]) => {
-              const isHidden = hiddenFriendIds.has(friendId);
-              return (
-                <form key={friendId} action={toggleFriendVisibility}>
-                  <input type="hidden" name="friendId" value={friendId} />
-                  {/* Submits the opposite of the current state. Hard-coding
-                      "false" here meant a hidden friend could only be brought
-                      back by editing the database. */}
-                  <input
-                    type="hidden"
-                    name="visible"
-                    value={isHidden ? "true" : "false"}
-                  />
-                  <SubmitButton
-                    pendingText={isHidden ? "Showing…" : "Hiding…"}
-                    aria-pressed={isHidden}
-                    className={
-                      isHidden
-                        ? "rounded-full border border-dashed border-border bg-surface-muted px-4 py-2.5 text-sm text-muted transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:bg-surface hover:text-foreground disabled:opacity-50"
-                        : "rounded-full border border-border bg-surface px-4 py-2.5 text-sm text-muted shadow-[var(--shadow-soft)] transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
-                    }
-                  >
-                    {isHidden ? "Show" : "Hide"} {label}
-                  </SubmitButton>
-                </form>
-              );
-            })}
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-16">
+          <div className="min-w-0 lg:pt-1">
+            <h2 className="mb-3 text-sm font-semibold text-foreground">Showing</h2>
+            {hasFriends ? (
+              <div className="flex min-w-0 flex-wrap gap-2 lg:flex-col lg:items-start">
+                {[...friendsByUserId.entries()].map(([friendId, label]) => {
+                  const isHidden = hiddenFriendIds.has(friendId);
+                  return (
+                    <form key={friendId} action={toggleFriendVisibility}>
+                      <input type="hidden" name="friendId" value={friendId} />
+                      {/* Submits the opposite of the current state. Hard-coding
+                          "false" here meant a hidden friend could only be brought
+                          back by editing the database. */}
+                      <input
+                        type="hidden"
+                        name="visible"
+                        value={isHidden ? "true" : "false"}
+                      />
+                      <SubmitButton
+                        pendingText={isHidden ? "Showing…" : "Hiding…"}
+                        aria-pressed={isHidden}
+                        className={
+                          isHidden
+                            ? "rounded-full border border-dashed border-border bg-surface-muted px-3.5 py-2 text-sm text-muted transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:bg-surface hover:text-foreground disabled:opacity-50"
+                            : "rounded-full border border-border bg-surface px-3.5 py-2 text-sm text-muted shadow-[var(--shadow-soft)] transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
+                        }
+                      >
+                        {isHidden ? "Show" : "Hide"} {label}
+                      </SubmitButton>
+                    </form>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm leading-relaxed text-muted">
+                No friends are sharing a calendar with you yet.{" "}
+                <Link href="/friends" className="font-medium text-accent hover:underline">
+                  Add a friend
+                </Link>{" "}
+                to see their events here.
+              </p>
+            )}
           </div>
-        ) : (
-          <div className="mb-10 rounded-2xl border border-dashed border-border p-6 text-sm leading-relaxed text-muted">
-            No friends are sharing a calendar with you yet.{" "}
-            <Link href="/friends" className="font-medium text-accent hover:underline">
-              Add a friend
-            </Link>{" "}
-            to see their events here.
-          </div>
-        )}
 
-        <RealtimeMergedView
-          initialEvents={events}
-          calendarMetaByRowId={calendarMetaByRowId}
-          supabaseAccessToken={session.supabaseAccessToken}
-        />
+          <div className="min-w-0">
+            <RealtimeMergedView
+              initialEvents={events}
+              calendarMetaByRowId={calendarMetaByRowId}
+              supabaseAccessToken={session.supabaseAccessToken}
+            />
+          </div>
+        </div>
       </div>
     </main>
   );

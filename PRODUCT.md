@@ -35,6 +35,7 @@ Used casually, likely a few times a week, by someone checking "what does my week
 - No existing logo mark beyond a text wordmark.
 - Auto light/dark theming (OS-driven, no manual toggle) is an existing implementation detail, not a confirmed requirement — open for the redesign to keep or replace.
 - **Standing visual direction (user-pinned, 2026-09-21):** the user named Apple's marketing aesthetic — typography scale, generous whitespace, restraint, motion quality — adapted for Overlap's Operate-mode task screens (not literal hero-imagery/scroll-marketing sections on functional pages), plus Things 3 / Fantastical as the calibration for warmth and tactility so the result reads "premium and spa-like," not cold/clinical. This is a brief-pinned canon reference per the design skill's standing-exit path — it stands until the user changes it, and future visual work on this app should sit alongside these two references rather than re-opening a direction round.
+- **Standing palette (user-pinned, 2026-09-21, supersedes the original warm-ivory/pine-teal palette from the same day):** a user-supplied "Stormy morning" blue-gray board (`#6A89A7` / `#BDDDFC` / `#88BDF2` / `#384959`) — see DESIGN.md's Colors section for the full role mapping and contrast notes. The "premium and spa-like, not cold/clinical" quality above is now carried by materials, motion, and generous whitespace rather than warm hue — the palette itself is intentionally cool.
 
 ## Evidence on Hand
 

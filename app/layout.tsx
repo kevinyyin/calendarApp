@@ -44,6 +44,15 @@ direction beats the roll, always."
 FINISH: unreviewed and undocumented is unfinished; this build ends with
 the finish review, the verdict, DESIGN.md, and every shipping raster
 carrying its provenance
+
+STRUCTURE AMENDMENT (2026-09-21): palette/materials above stayed pinned;
+scale and structure changed per user reference (an editorial big-type
+portfolio layout) plus feedback that the original single-column card
+layout read as generic. Raised the display/headline type scale app-wide,
+added a meta-rail + content grid on wide viewports, replaced repeated
+shadow-card list rows with hairline-divided rows, and added a Badge
+component for metadata pills. See DESIGN.md's Typography/Layout/
+Components sections and their "2026-09-21 structure amendment" notes.
 `;
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
