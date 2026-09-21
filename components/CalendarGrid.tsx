@@ -98,7 +98,12 @@ function DayTimeline({
   const span = band.end - band.start;
 
   return (
-    <div aria-hidden="true" className="mb-3 rounded-xl border border-border bg-surface-muted p-2.5">
+    // `bg-surface` (white/near-black card), not `bg-surface-muted`: that pale
+    // blue token sits too close to several of Google Calendar's own light
+    // event colors (e.g. Lavender #a4bdfc) for a segment to read clearly
+    // against it, and it also failed contrast for the hour labels below
+    // (`text-muted` only clears ~3.67:1 on `bg-surface-muted` vs ~5.2:1 here).
+    <div aria-hidden="true" className="mb-3 rounded-xl border border-border bg-surface p-2.5">
       <div
         className="relative"
         style={{ height: laneCount * LANE_HEIGHT_PX + (laneCount - 1) * LANE_GAP_PX }}

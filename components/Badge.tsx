@@ -1,5 +1,9 @@
 const TONE_CLASSES = {
-  neutral: "border-border bg-surface-muted text-muted",
+  // `text-muted` on `bg-surface-muted` only clears ~3.67:1 (both tokens are
+  // pale blues) — below WCAG AA's 4.5:1 floor for normal text. `text-foreground`
+  // on the same background clears ~6.6:1, matching the `accent` tone below,
+  // which pairs an equally pale background with dark text for the same reason.
+  neutral: "border-border bg-surface-muted text-foreground",
   outline: "border-border bg-transparent text-muted",
   accent: "border-transparent bg-accent-muted text-accent",
 } as const;
