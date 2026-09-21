@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-21T04:50:00Z",
+  "title": "Design System: Overlap",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Deep Pine Teal",
+        "canonical": "#0f766e",
+        "tonalRamp": ["#0a2622", "#0f3d37", "#14544c", "#0f766e", "#2a9c8f", "#5ec2b3", "#94ded2", "#c9f0e9"]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Warm Ivory",
+        "canonical": "#faf8f5",
+        "tonalRamp": ["#1a1613", "#332c26", "#4d423a", "#6b5f53", "#948676", "#c2b6a5", "#e6ded3", "#faf8f5"]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Warm Charcoal",
+        "canonical": "#211d19",
+        "tonalRamp": ["#0d0b0a", "#211d19", "#3a332c", "#544a40", "#746b60", "#a89d90", "#d2c9bd", "#f3ede4"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Muted Clay",
+        "canonical": "#b3452f",
+        "tonalRamp": ["#3a170f", "#5c241a", "#83341f", "#b3452f", "#cc6c52", "#e2957c", "#f0bcab", "#fbeee9"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The one first-viewport headline per page." },
+      "headline": { "displayName": "Headline", "purpose": "Section leads inside authenticated pages." },
+      "body": { "displayName": "Body", "purpose": "Supporting copy and helper text." },
+      "label": { "displayName": "Label", "purpose": "Reserved for the wordmark only — never a decorative kicker." }
+    },
+    "shadows": [
+      { "name": "soft", "value": "0 1px 2px rgba(33,29,25,0.04), 0 8px 24px -12px rgba(33,29,25,0.12)", "purpose": "Resting elevation for cards, rows, and list items." },
+      { "name": "lifted", "value": "0 2px 4px rgba(33,29,25,0.05), 0 16px 40px -16px rgba(33,29,25,0.22)", "purpose": "Hover state for cards and the primary sign-in button." }
+    ],
+    "motion": [
+      { "name": "ease-premium", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Exponential ease-out used for every interactive transition and the page-load rise-in." },
+      { "name": "rise-in", "value": "opacity 0->1, translateY 8px->0, 0.5s ease-premium", "purpose": "The single authored entrance moment, applied once to a page's outer content wrapper — never cascaded per element." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The accent-filled pill used for the app's one primary action per view (Sign in, Save, Accept, Share).",
+      "html": "<button class=\"ds-btn-primary\">Sign in with Google</button>",
+      "css": ".ds-btn-primary { background: var(--accent); color: var(--accent-foreground); border-radius: 9999px; padding: 12px 20px; font-size: 14px; font-weight: 500; border: none; box-shadow: 0 1px 2px rgba(33,29,25,0.04), 0 8px 24px -12px rgba(33,29,25,0.12); transition: box-shadow 300ms cubic-bezier(0.16,1,0.3,1), transform 300ms cubic-bezier(0.16,1,0.3,1), opacity 300ms; } .ds-btn-primary:hover { opacity: 0.9; box-shadow: 0 2px 4px rgba(33,29,25,0.05), 0 16px 40px -16px rgba(33,29,25,0.22); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:disabled { opacity: 0.5; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Quiet destructive action (Decline, Remove, Unshare) — muted, not a shouting filled red.",
+      "html": "<button class=\"ds-btn-danger\">Remove</button>",
+      "css": ".ds-btn-danger { background: var(--danger-muted); color: var(--danger); border-radius: 9999px; padding: 8px 16px; font-size: 14px; font-weight: 500; border: none; transition: opacity 200ms cubic-bezier(0.16,1,0.3,1), transform 200ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-danger:hover { opacity: 0.8; } .ds-btn-danger:active { transform: scale(0.98); }"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Low-stakes secondary action (Cancel).",
+      "html": "<button class=\"ds-btn-quiet\">Cancel</button>",
+      "css": ".ds-btn-quiet { background: var(--surface-muted); color: var(--muted); border-radius: 9999px; padding: 8px 16px; font-size: 14px; font-weight: 500; border: none; transition: color 200ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-quiet:hover { color: var(--foreground); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Username/duration fields across onboarding, friends, and find-a-time.",
+      "html": "<input class=\"ds-input\" placeholder=\"username\" />",
+      "css": ".ds-input { border: 1px solid var(--border); background: var(--surface); border-radius: 12px; padding: 10px 16px; font-size: 14px; color: var(--foreground); outline: none; transition: border-color 200ms; } .ds-input:focus-visible { border-color: var(--accent); } .ds-input[aria-invalid=\"true\"] { border-color: var(--danger); }"
+    },
+    {
+      "name": "Card Row",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A calendar, friend, or event row — the system's one repeating container shape.",
+      "html": "<div class=\"ds-card\">Row content</div>",
+      "css": ".ds-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 20px; box-shadow: 0 1px 2px rgba(33,29,25,0.04), 0 8px 24px -12px rgba(33,29,25,0.12); transition: box-shadow 300ms cubic-bezier(0.16,1,0.3,1); } .ds-card:hover { box-shadow: 0 2px 4px rgba(33,29,25,0.05), 0 16px 40px -16px rgba(33,29,25,0.22); }"
+    },
+    {
+      "name": "Navigation Bar",
+      "kind": "nav",
+      "refersTo": "nav",
+      "description": "Sticky, translucent-blurred header with pill nav links; active route gets a filled pill.",
+      "html": "<a class=\"ds-nav-link ds-nav-link--active\">This week</a><a class=\"ds-nav-link\">Find a time</a>",
+      "css": ".ds-nav-link { border-radius: 9999px; padding: 10px 16px; font-size: 14px; color: var(--muted); text-decoration: none; transition: background-color 200ms, color 200ms; } .ds-nav-link:hover { background: var(--surface-muted); color: var(--foreground); } .ds-nav-link--active { background: var(--surface-muted); color: var(--foreground); font-weight: 500; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Concierge",
+    "overview": "Overlap exists to take a small, mundane chore — figuring out when a handful of friends are all free — and handle it with the unhurried confidence of someone who's good at their job and never makes you feel rushed. The system refuses the generic Tailwind-indigo SaaS-dashboard default: no cold slate grays, no scattershot card grids, no kicker labels announcing what a heading already says on its own. It borrows Apple's marketing-page restraint — generous type scale, huge quiet margins, one idea per screen — but stays an Operate-mode tool throughout: nothing here exists to persuade, only to help. Things 3 and Fantastical set the calibration for warmth: this should feel tactile and considered, never clinical.",
+    "keyCharacteristics": [
+      "Warm neutrals throughout — ivory and soft charcoal, never cold slate or blue-black",
+      "One confident accent (deep pine teal) carrying every primary action and piece of state",
+      "One typeface, one scale, no display/body split",
+      "Soft dual-layer shadows for depth; no hard offset shadows anywhere",
+      "Pill-shaped controls; rounded-corner cards; nothing sharp-edged",
+      "One entrance moment per view, never scattered per-element animation"
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Deep Pine Teal is the only saturated color in the interface. Danger, success, and warning exist for semantic state only and are deliberately desaturated toward the same warm family.", "section": "colors" },
+      { "name": "The No-Kicker Rule", "body": "No small tracked label ever sits directly above a heading as a category/eyebrow tag. The wordmark lives in its own corner position instead.", "section": "typography" },
+      { "name": "The Grows-On-Touch Rule", "body": "A resting surface uses the Soft shadow; the same surface under hover/focus uses Lifted. Depth is a response to attention, not a static decoration.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep every button pill-shaped and every card/input at the 12px/16px radius steps.",
+      "Do route every server-action button through SubmitButton/ConfirmSubmitButton so pending/disabled state is automatic.",
+      "Do use Soft shadow at rest and Lifted on hover for any new card or primary button.",
+      "Do keep the tracked-uppercase Label treatment to exactly one use — the corner wordmark."
+    ],
+    "donts": [
+      "Don't introduce a second accent color.",
+      "Don't add a kicker/eyebrow label above any heading — this was tried once during the build and reverted.",
+      "Don't use a hard offset shadow anywhere — this system is not neobrutalist.",
+      "Don't switch to a second typeface or a monospace face for \"technical\" content.",
+      "Don't animate more than one element's entrance per view."
+    ]
+  }
+}
