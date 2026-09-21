@@ -75,14 +75,22 @@ describe("mergeIncomingEvent", () => {
   });
 });
 
+// Dated "today" (rather than a fixed past date) so the render test below,
+// which relies on CalendarGrid's default Day view, actually shows it.
+function todayAt(hour: number, minute: number) {
+  const d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  return d;
+}
+
 const existingRow = {
   id: "e1",
   personUserId: "friend-1",
   personLabel: "Alice",
   color: "#111",
   title: "Standup",
-  startAt: new Date("2026-09-18T09:00:00Z"),
-  endAt: new Date("2026-09-18T09:30:00Z"),
+  startAt: todayAt(9, 0),
+  endAt: todayAt(9, 30),
 };
 
 describe("removeEventById", () => {
