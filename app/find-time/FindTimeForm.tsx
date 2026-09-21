@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { findSlotsForCurrentUser } from "./find-slots-action";
 import { Spinner } from "@/components/Spinner";
 import { Badge } from "@/components/Badge";
-import { formatEventRange } from "@/lib/format-datetime";
+import { FreeSlotsCalendar } from "./FreeSlotsCalendar";
 
 // "Find a time" is a repeated, specific-group task ("when can the four of us
 // actually meet") per PRODUCT.md, not a one-off — re-checking the same
@@ -174,18 +174,7 @@ export function FindTimeForm({ friendUsernames }: { friendUsernames: string[] })
           </div>
         )}
 
-        {slots.length > 0 && (
-          <ul className="mt-10 flex flex-col divide-y divide-border border-y border-border">
-            {slots.map((slot, i) => (
-              <li
-                key={i}
-                className="tabular-nums py-3.5 text-sm text-foreground first:pt-2.5 last:pb-2.5"
-              >
-                {formatEventRange(slot.start, slot.end)}
-              </li>
-            ))}
-          </ul>
-        )}
+        {slots.length > 0 && <FreeSlotsCalendar slots={slots} />}
       </div>
     </main>
   );
