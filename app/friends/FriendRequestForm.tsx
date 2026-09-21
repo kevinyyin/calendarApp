@@ -18,27 +18,27 @@ export function FriendRequestForm() {
   }, [state]);
 
   return (
-    <div className="mb-6">
-      <form ref={formRef} action={formAction} className="flex gap-2">
+    <div className="mb-12">
+      <form ref={formRef} action={formAction} className="flex gap-2.5">
         <input
           name="username"
           placeholder="username"
           required
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "friend-request-error" : undefined}
-          className={`flex-1 rounded-md border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent ${
+          className={`flex-1 rounded-xl border bg-surface px-4 py-2.5 text-sm text-foreground outline-none transition-colors duration-200 focus:border-accent ${
             error ? "border-danger" : "border-border"
           }`}
         />
         <SubmitButton
           pendingText="Sending…"
-          className="shrink-0 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition active:scale-95 hover:opacity-90 disabled:opacity-50"
+          className="shrink-0 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-accent-foreground transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:opacity-90 disabled:opacity-50"
         >
           Send request
         </SubmitButton>
       </form>
       {error && (
-        <p id="friend-request-error" role="alert" className="mt-1.5 text-sm text-danger">
+        <p id="friend-request-error" role="alert" className="mt-2 text-sm text-danger">
           {error}
         </p>
       )}

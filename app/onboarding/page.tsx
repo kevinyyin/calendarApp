@@ -9,14 +9,16 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-16">
-      <div className="flex max-w-xs flex-col items-center gap-1 text-center">
-        <h1 className="text-xl font-semibold text-foreground">Welcome</h1>
-        <p className="text-sm text-muted">
-          One last step — pick a username so friends can send you requests.
-        </p>
+    <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">
+      <div className="animate-rise-in flex w-full max-w-xs flex-col items-center gap-8">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Welcome</h1>
+          <p className="text-base leading-relaxed text-muted">
+            One last step — pick a username so friends can send you requests.
+          </p>
+        </div>
+        <OnboardingForm />
       </div>
-      <OnboardingForm />
     </main>
   );
 }

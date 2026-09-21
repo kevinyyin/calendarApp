@@ -36,26 +36,28 @@ export default function GlobalError({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: "1rem",
+          gap: "1.25rem",
           padding: "1.5rem",
           textAlign: "center",
           fontFamily: "system-ui, sans-serif",
+          backgroundColor: "#faf8f5",
+          color: "#211d19",
         }}
       >
-        <h1 ref={headingRef} tabIndex={-1} style={{ fontSize: "1.125rem", fontWeight: 600 }}>
+        <h1 ref={headingRef} tabIndex={-1} style={{ fontSize: "1.5rem", fontWeight: 600, letterSpacing: "-0.02em" }}>
           Something went wrong
         </h1>
-        <p style={{ maxWidth: "20rem", fontSize: "0.875rem", color: "#6b7280" }}>
+        <p style={{ maxWidth: "20rem", fontSize: "1rem", lineHeight: 1.6, color: "#746b60" }}>
           This page hit an unexpected error. Trying again usually fixes it.
         </p>
         <div style={{ display: "flex", gap: "0.75rem" }}>
           <button
             onClick={() => retry()}
             style={{
-              borderRadius: "0.375rem",
-              backgroundColor: "#4f46e5",
+              borderRadius: "9999px",
+              backgroundColor: "#0f766e",
               color: "#ffffff",
-              padding: "0.5rem 1rem",
+              padding: "0.625rem 1.25rem",
               fontSize: "0.875rem",
               fontWeight: 500,
               border: "none",
@@ -73,10 +75,10 @@ export default function GlobalError({
           <a
             href="/"
             style={{
-              borderRadius: "0.375rem",
-              border: "1px solid #d1d5db",
-              color: "#374151",
-              padding: "0.5rem 1rem",
+              borderRadius: "9999px",
+              border: "1px solid #e6ded3",
+              color: "#211d19",
+              padding: "0.625rem 1.25rem",
               fontSize: "0.875rem",
               fontWeight: 500,
               textDecoration: "none",

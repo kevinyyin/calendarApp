@@ -1,21 +1,35 @@
 @import "tailwindcss";
 
+/*
+  Overlap — visual world (2026-09-21)
+  Apple's marketing restraint (type scale, whitespace, motion quality)
+  adapted for an Operate-mode task app, calibrated warmer and more tactile
+  by Things 3 / Fantastical. Warm neutrals (never cold slate/blue-black), a
+  single deep-pine accent, one typeface throughout, generous space, and an
+  exponential ease-out used once per surface rather than scattered fades.
+  See PRODUCT.md's Brand Commitments for the standing direction.
+*/
+
 :root {
-  --background: #f8fafc;
+  --background: #faf8f5;
   --surface: #ffffff;
-  --surface-muted: #f1f5f9;
-  --foreground: #0f172a;
-  --muted: #64748b;
-  --border: #e2e8f0;
-  --accent: #4f46e5;
+  --surface-muted: #f2ede6;
+  --foreground: #211d19;
+  --muted: #746b60;
+  --border: #e6ded3;
+  --accent: #0f766e;
   --accent-foreground: #ffffff;
-  --accent-muted: #eef2ff;
-  --danger: #dc2626;
-  --danger-muted: #fef2f2;
-  --success: #16a34a;
-  --warning: #b45309;
-  --warning-muted: #fffbeb;
-  --warning-border: #fde68a;
+  --accent-muted: #e3f2ef;
+  --danger: #b3452f;
+  --danger-muted: #fbeee9;
+  --success: #3f7a52;
+  --warning: #a15c1f;
+  --warning-muted: #faf0e2;
+  --warning-border: #ecd8b3;
+
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-soft: 0 1px 2px rgba(33, 29, 25, 0.04), 0 8px 24px -12px rgba(33, 29, 25, 0.12);
+  --shadow-lifted: 0 2px 4px rgba(33, 29, 25, 0.05), 0 16px 40px -16px rgba(33, 29, 25, 0.22);
 }
 
 @theme inline {
@@ -34,27 +48,29 @@
   --color-warning: var(--warning);
   --color-warning-muted: var(--warning-muted);
   --color-warning-border: var(--warning-border);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-jakarta);
+  --ease-premium: var(--ease-premium);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b0f19;
-    --surface: #131826;
-    --surface-muted: #1a2032;
-    --foreground: #e8ecf4;
-    --muted: #8b93a7;
-    --border: #262d40;
-    --accent: #818cf8;
-    --accent-foreground: #0b0f19;
-    --accent-muted: #1e2140;
-    --danger: #f87171;
-    --danger-muted: #2a1518;
-    --success: #4ade80;
-    --warning: #fbbf24;
-    --warning-muted: #241d0d;
-    --warning-border: #4d3c14;
+    --background: #1a1613;
+    --surface: #221d19;
+    --surface-muted: #2b2521;
+    --foreground: #f3ede4;
+    --muted: #a89d90;
+    --border: #3a332c;
+    --accent: #4fd1c1;
+    --accent-foreground: #16211f;
+    --accent-muted: #1d2f2c;
+    --danger: #e2957c;
+    --danger-muted: #33221c;
+    --success: #86c79a;
+    --warning: #e0b273;
+    --warning-muted: #2e2416;
+    --warning-border: #4a3a22;
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 24px -12px rgba(0, 0, 0, 0.4);
+    --shadow-lifted: 0 2px 4px rgba(0, 0, 0, 0.3), 0 16px 40px -16px rgba(0, 0, 0, 0.55);
   }
 }
 
@@ -62,6 +78,17 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Tabular figures wherever dates/times/counts appear, so aligned columns of
+   numbers (a merged view's times, a duration field) don't visually jitter —
+   the browser-default proportional numerals are one of the cheapest
+   "assembled, not designed" tells on a scheduling app. */
+.tabular-nums,
+input[type="number"] {
+  font-variant-numeric: tabular-nums;
 }
 
 ::selection {
@@ -72,4 +99,50 @@ body {
 *:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+  border: 3px solid var(--background);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* The single authored entrance moment, reused everywhere content appears
+   after a route change rather than one bespoke effect per page. Content is
+   fully present without it — this only ever runs as an enhancement on top
+   of already-rendered markup, so it never gates visibility on JS or paints
+   an invisible-by-default element. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise-in {
+  animation: rise-in 0.5s var(--ease-premium) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise-in {
+    animation: none;
+  }
 }

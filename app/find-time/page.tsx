@@ -33,22 +33,24 @@ export default async function FindTimePage() {
 
   if (friendUsernames.length === 0) {
     return (
-      <main className="mx-auto max-w-lg px-6 py-10">
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold text-foreground">Find a time</h1>
-        </div>
-        <div className="rounded-lg border border-dashed border-border p-8 text-center">
-          <p className="text-sm font-medium text-foreground">No friends yet</p>
-          <p className="mt-1 text-sm text-muted">
-            Add a friend first, then come back here to find a time that works
-            for both of you.
-          </p>
-          <Link
-            href="/friends"
-            className="mt-3 inline-block font-medium text-accent hover:underline"
-          >
-            Add a friend
-          </Link>
+      <main className="mx-auto max-w-lg px-6 py-16 sm:py-20">
+        <div className="animate-rise-in">
+          <div className="mb-10">
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Find a time</h1>
+          </div>
+          <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+            <p className="text-sm font-medium text-foreground">No friends yet</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted">
+              Add a friend first, then come back here to find a time that works
+              for both of you.
+            </p>
+            <Link
+              href="/friends"
+              className="mt-4 inline-block font-medium text-accent hover:underline"
+            >
+              Add a friend
+            </Link>
+          </div>
         </div>
       </main>
     );

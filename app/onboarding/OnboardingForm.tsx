@@ -20,8 +20,8 @@ export function OnboardingForm() {
   }, [state, router]);
 
   return (
-    <form action={formAction} className="flex w-full max-w-xs flex-col gap-3">
-      <div className="flex flex-col gap-1.5">
+    <form action={formAction} className="flex w-full flex-col gap-4">
+      <div className="flex flex-col gap-2">
         <label htmlFor="username" className="text-sm font-medium text-foreground">
           Choose a username
         </label>
@@ -35,11 +35,11 @@ export function OnboardingForm() {
           autoFocus
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "username-error" : undefined}
-          className={`rounded-md border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent ${
+          className={`rounded-xl border bg-surface px-4 py-2.5 text-sm text-foreground outline-none transition-colors duration-200 focus:border-accent ${
             error ? "border-danger" : "border-border"
           }`}
         />
-        <p className="text-xs text-muted">
+        <p className="text-xs leading-relaxed text-muted">
           Letters, numbers, and underscores only — this is how friends will find you.
         </p>
         {error && (
@@ -50,7 +50,7 @@ export function OnboardingForm() {
       </div>
       <SubmitButton
         pendingText="Saving…"
-        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition active:scale-95 hover:opacity-90 disabled:opacity-50"
+        className="rounded-full bg-accent px-5 py-3 text-sm font-medium text-accent-foreground shadow-[var(--shadow-soft)] transition duration-200 ease-[var(--ease-premium)] active:scale-[0.98] hover:opacity-90 hover:shadow-[var(--shadow-lifted)] disabled:opacity-50"
       >
         Continue
       </SubmitButton>

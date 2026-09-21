@@ -3,9 +3,9 @@ import { SubmitButton } from "@/components/SubmitButton";
 
 export function ReconnectBanner() {
   return (
-    <div className="border-b border-warning-border bg-warning-muted px-6 py-2.5">
+    <div className="border-b border-warning-border bg-warning-muted px-6 py-4">
       <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-        <p className="flex items-center gap-2 text-sm text-warning">
+        <p className="flex items-center gap-2.5 text-sm text-warning">
           <svg
             aria-hidden="true"
             viewBox="0 0 20 20"
@@ -28,7 +28,7 @@ export function ReconnectBanner() {
         >
           <SubmitButton
             pendingText="Redirecting…"
-            className="shrink-0 rounded-md border border-warning-border px-3 py-1 text-sm font-medium text-warning transition active:scale-95 hover:bg-warning-border/40 disabled:opacity-50"
+            className="shrink-0 rounded-full border border-warning-border px-4 py-2 text-sm font-medium text-warning transition active:scale-95 hover:bg-warning-border/40 disabled:opacity-50"
           >
             Reconnect
           </SubmitButton>
