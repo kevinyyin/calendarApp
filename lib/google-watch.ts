@@ -1,6 +1,14 @@
 import { google } from "googleapis";
 import { randomUUID } from "crypto";
 
+// See lib/google-calendar.ts for why this is necessary: gaxios has no
+// default request timeout and an effectively unbounded retry budget
+// (`totalTimeout` defaults to `Number.MAX_SAFE_INTEGER`).
+const GOOGLE_REQUEST_OPTIONS = {
+  timeout: 15_000,
+  retryConfig: { retry: 2, totalTimeout: 20_000 },
+};
+
 function calendarClient(accessToken: string) {
   const auth = new google.auth.OAuth2();
   // Assigned directly (rather than via `auth.setCredentials(...)`) to match
@@ -19,14 +27,17 @@ export async function registerWatchChannel(
   webhookUrl: string,
 ) {
   const calendar = calendarClient(accessToken);
-  const res = await calendar.events.watch({
-    calendarId: googleCalendarId,
-    requestBody: {
-      id: randomUUID(),
-      type: "web_hook",
-      address: webhookUrl,
+  const res = await calendar.events.watch(
+    {
+      calendarId: googleCalendarId,
+      requestBody: {
+        id: randomUUID(),
+        type: "web_hook",
+        address: webhookUrl,
+      },
     },
-  });
+    GOOGLE_REQUEST_OPTIONS,
+  );
   return {
     channelId: res.data.id!,
     resourceId: res.data.resourceId!,
@@ -40,7 +51,8 @@ export async function stopWatchChannel(
   resourceId: string,
 ) {
   const calendar = calendarClient(accessToken);
-  await calendar.channels.stop({
-    requestBody: { id: channelId, resourceId },
-  });
+  await calendar.channels.stop(
+    { requestBody: { id: channelId, resourceId } },
+    GOOGLE_REQUEST_OPTIONS,
+  );
 }

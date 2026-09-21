@@ -97,6 +97,10 @@ export async function getFreshAccessToken(userId: string): Promise<string> {
       client_id: clientId,
       client_secret: clientSecret,
     }).toString(),
+    // Bare `fetch` has no default timeout — without this, a stalled request
+    // to Google's token endpoint hangs indefinitely instead of failing so
+    // the caller's existing try/catch (see toggleShareCalendar) can recover.
+    signal: AbortSignal.timeout(15_000),
   });
 
   const payload: {

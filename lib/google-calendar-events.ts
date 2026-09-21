@@ -2,6 +2,15 @@ import { google, calendar_v3 } from "googleapis";
 
 export type GoogleEvent = calendar_v3.Schema$Event;
 
+// See lib/google-calendar.ts for why this is necessary: gaxios has no
+// default request timeout and an effectively unbounded retry budget
+// (`totalTimeout` defaults to `Number.MAX_SAFE_INTEGER`), so a stalled sync
+// call can otherwise run until the serverless function itself is killed.
+const GOOGLE_REQUEST_OPTIONS = {
+  timeout: 15_000,
+  retryConfig: { retry: 2, totalTimeout: 20_000 },
+};
+
 function calendarClient(accessToken: string) {
   const auth = new google.auth.OAuth2();
   // Assigned directly (rather than via `auth.setCredentials(...)`) to match
@@ -24,12 +33,15 @@ export async function fetchAllGoogleEvents(
   const items: GoogleEvent[] = [];
 
   do {
-    const res = await calendar.events.list({
-      calendarId: googleCalendarId,
-      pageToken,
-      singleEvents: true,
-      maxResults: 250,
-    });
+    const res = await calendar.events.list(
+      {
+        calendarId: googleCalendarId,
+        pageToken,
+        singleEvents: true,
+        maxResults: 250,
+      },
+      GOOGLE_REQUEST_OPTIONS,
+    );
     items.push(...(res.data.items ?? []));
     pageToken = res.data.nextPageToken ?? undefined;
     nextSyncToken = res.data.nextSyncToken ?? nextSyncToken;
@@ -53,13 +65,16 @@ export async function fetchIncrementalGoogleEvents(
   const items: GoogleEvent[] = [];
 
   do {
-    const res = await calendar.events.list({
-      calendarId: googleCalendarId,
-      pageToken,
-      syncToken: pageToken ? undefined : syncToken,
-      singleEvents: true,
-      maxResults: 250,
-    });
+    const res = await calendar.events.list(
+      {
+        calendarId: googleCalendarId,
+        pageToken,
+        syncToken: pageToken ? undefined : syncToken,
+        singleEvents: true,
+        maxResults: 250,
+      },
+      GOOGLE_REQUEST_OPTIONS,
+    );
     items.push(...(res.data.items ?? []));
     pageToken = res.data.nextPageToken ?? undefined;
     nextSyncToken = res.data.nextSyncToken ?? nextSyncToken;

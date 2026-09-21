@@ -32,6 +32,9 @@ describe("registerWatchChannel", () => {
           address: "https://example.com/api/webhooks/google-calendar",
         }),
       }),
+      // A bounded timeout/retry budget so a stalled Google call can't hang
+      // the caller indefinitely — see lib/google-watch.ts.
+      expect.objectContaining({ timeout: expect.any(Number) }),
     );
     expect(result.channelId).toBe("chan-1");
     expect(result.resourceId).toBe("res-1");
@@ -42,8 +45,9 @@ describe("registerWatchChannel", () => {
 describe("stopWatchChannel", () => {
   it("calls channels.stop with the channel and resource id", async () => {
     await stopWatchChannel("token", "chan-1", "res-1");
-    expect(stopMock).toHaveBeenCalledWith({
-      requestBody: { id: "chan-1", resourceId: "res-1" },
-    });
+    expect(stopMock).toHaveBeenCalledWith(
+      { requestBody: { id: "chan-1", resourceId: "res-1" } },
+      expect.objectContaining({ timeout: expect.any(Number) }),
+    );
   });
 });
