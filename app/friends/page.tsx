@@ -66,7 +66,7 @@ export default async function FriendsPage() {
                     <input type="hidden" name="accept" value="true" />
                     <SubmitButton
                       pendingText="Accepting…"
-                      className="rounded-md bg-accent px-3 py-1 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                      className="rounded-md bg-accent px-3 py-1 text-sm font-medium text-accent-foreground transition active:scale-95 hover:opacity-90 disabled:opacity-50"
                     >
                       Accept
                     </SubmitButton>
@@ -76,7 +76,7 @@ export default async function FriendsPage() {
                     <input type="hidden" name="accept" value="false" />
                     <SubmitButton
                       pendingText="Declining…"
-                      className="rounded-md bg-surface-muted px-3 py-1 text-sm font-medium text-muted transition-colors hover:text-foreground disabled:opacity-50"
+                      className="rounded-md bg-surface-muted px-3 py-1 text-sm font-medium text-muted transition active:scale-95 hover:text-foreground disabled:opacity-50"
                     >
                       Decline
                     </SubmitButton>

@@ -50,7 +50,7 @@ export function OnboardingForm() {
       </div>
       <SubmitButton
         pendingText="Saving…"
-        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition active:scale-95 hover:opacity-90 disabled:opacity-50"
       >
         Continue
       </SubmitButton>

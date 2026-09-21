@@ -25,7 +25,7 @@ export default function LoginPage() {
       >
         <SubmitButton
           pendingText="Redirecting to Google…"
-          className="flex items-center gap-3 rounded-md border border-border bg-surface px-5 py-3 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-surface-muted disabled:opacity-50"
+          className="rounded-md border border-border bg-surface px-5 py-3 text-sm font-medium text-foreground shadow-sm transition active:scale-95 hover:bg-surface-muted disabled:opacity-50"
         >
           <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
             <path

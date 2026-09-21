@@ -32,7 +32,7 @@ export function UsernameForm({ currentUsername }: { currentUsername: string | nu
           />
           <SubmitButton
             pendingText="Saving…"
-            className="shrink-0 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="shrink-0 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition active:scale-95 hover:opacity-90 disabled:opacity-50"
           >
             Save
           </SubmitButton>

@@ -76,8 +76,8 @@ export default async function HomePage() {
                   aria-pressed={isHidden}
                   className={
                     isHidden
-                      ? "rounded-full border border-dashed border-border bg-surface-muted px-3 py-1 text-sm text-muted transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50"
-                      : "rounded-full border border-border bg-surface px-3 py-1 text-sm text-muted transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
+                      ? "rounded-full border border-dashed border-border bg-surface-muted px-3 py-1 text-sm text-muted transition active:scale-95 hover:bg-surface hover:text-foreground disabled:opacity-50"
+                      : "rounded-full border border-border bg-surface px-3 py-1 text-sm text-muted transition active:scale-95 hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
                   }
                 >
                   {isHidden ? "Show" : "Hide"} {label}

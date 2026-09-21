@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { findSlotsForCurrentUser } from "./find-slots-action";
+import { Spinner } from "@/components/Spinner";
 
 export default function FindTimePage() {
   const [slots, setSlots] = useState<{ start: Date; end: Date }[]>([]);
@@ -73,9 +74,12 @@ export default function FindTimePage() {
         <button
           type="submit"
           disabled={isPending}
-          className="mt-1 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="mt-1 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition active:scale-95 hover:opacity-90 disabled:opacity-50"
         >
-          {isPending ? "Finding slots…" : "Find slots"}
+          <span className="inline-flex items-center gap-2">
+            {isPending && <Spinner className="h-3.5 w-3.5" />}
+            {isPending ? "Finding slots…" : "Find slots"}
+          </span>
         </button>
       </form>
 

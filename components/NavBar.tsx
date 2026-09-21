@@ -45,7 +45,7 @@ export function NavBar({
             >
               <SubmitButton
                 pendingText="Signing out…"
-                className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
+                className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted transition active:scale-95 hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
               >
                 Sign out
               </SubmitButton>

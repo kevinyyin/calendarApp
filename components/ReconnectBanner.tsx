@@ -28,7 +28,7 @@ export function ReconnectBanner() {
         >
           <SubmitButton
             pendingText="Redirecting…"
-            className="shrink-0 rounded-md border border-warning-border px-3 py-1 text-sm font-medium text-warning transition-colors hover:bg-warning-border/40 disabled:opacity-50"
+            className="shrink-0 rounded-md border border-warning-border px-3 py-1 text-sm font-medium text-warning transition active:scale-95 hover:bg-warning-border/40 disabled:opacity-50"
           >
             Reconnect
           </SubmitButton>

@@ -2,11 +2,12 @@
 
 import { useActionState, useRef, useEffect } from "react";
 import { sendFriendRequestAction, type SendFriendRequestState } from "./actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 const initialState: SendFriendRequestState = { ok: true };
 
 export function FriendRequestForm() {
-  const [state, formAction, isPending] = useActionState(sendFriendRequestAction, initialState);
+  const [state, formAction] = useActionState(sendFriendRequestAction, initialState);
   const error = state.ok ? undefined : state.error;
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -29,13 +30,12 @@ export function FriendRequestForm() {
             error ? "border-danger" : "border-border"
           }`}
         />
-        <button
-          type="submit"
-          disabled={isPending}
-          className="shrink-0 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+        <SubmitButton
+          pendingText="Sending…"
+          className="shrink-0 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition active:scale-95 hover:opacity-90 disabled:opacity-50"
         >
-          {isPending ? "Sending…" : "Send request"}
-        </button>
+          Send request
+        </SubmitButton>
       </form>
       {error && (
         <p id="friend-request-error" role="alert" className="mt-1.5 text-sm text-danger">

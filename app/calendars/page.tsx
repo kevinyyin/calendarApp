@@ -51,7 +51,7 @@ export default async function CalendarsPage() {
                   <input type="hidden" name="enable" value={(!isShared).toString()} />
                   <SubmitButton
                     pendingText={isShared ? "Unsharing…" : "Sharing…"}
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 ${
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition active:scale-95 disabled:opacity-50 ${
                       isShared
                         ? "bg-accent-muted text-accent hover:bg-accent-muted/70"
                         : "bg-accent text-accent-foreground hover:opacity-90"
