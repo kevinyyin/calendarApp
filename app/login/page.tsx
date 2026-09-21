@@ -1,4 +1,5 @@
 import { signIn } from "@/lib/auth";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default function LoginPage() {
   return (
@@ -22,9 +23,9 @@ export default function LoginPage() {
           await signIn("google", { redirectTo: "/onboarding" });
         }}
       >
-        <button
-          type="submit"
-          className="flex items-center gap-3 rounded-md border border-border bg-surface px-5 py-3 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-surface-muted"
+        <SubmitButton
+          pendingText="Redirecting to Google…"
+          className="flex items-center gap-3 rounded-md border border-border bg-surface px-5 py-3 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-surface-muted disabled:opacity-50"
         >
           <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
             <path
@@ -45,7 +46,7 @@ export default function LoginPage() {
             />
           </svg>
           Sign in with Google
-        </button>
+        </SubmitButton>
       </form>
     </main>
   );

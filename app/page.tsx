@@ -8,6 +8,7 @@ import {
 import { getVisibleCalendars } from "@/lib/visibility";
 import { RealtimeMergedView } from "@/components/RealtimeMergedView";
 import { toggleFriendVisibility } from "@/app/actions/merged-view";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function HomePage() {
   const session = await auth();
@@ -70,17 +71,17 @@ export default async function HomePage() {
                   name="visible"
                   value={isHidden ? "true" : "false"}
                 />
-                <button
-                  type="submit"
+                <SubmitButton
+                  pendingText={isHidden ? "Showing…" : "Hiding…"}
                   aria-pressed={isHidden}
                   className={
                     isHidden
-                      ? "rounded-full border border-dashed border-border bg-surface-muted px-3 py-1 text-sm text-muted transition-colors hover:bg-surface hover:text-foreground"
-                      : "rounded-full border border-border bg-surface px-3 py-1 text-sm text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+                      ? "rounded-full border border-dashed border-border bg-surface-muted px-3 py-1 text-sm text-muted transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50"
+                      : "rounded-full border border-border bg-surface px-3 py-1 text-sm text-muted transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
                   }
                 >
                   {isHidden ? "Show" : "Hide"} {label}
-                </button>
+                </SubmitButton>
               </form>
             );
           })}

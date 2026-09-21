@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signOut } from "@/lib/auth";
+import { SubmitButton } from "@/components/SubmitButton";
 
 const LINKS = [
   { href: "/", label: "This week" },
@@ -42,12 +43,12 @@ export function NavBar({
                 await signOut({ redirectTo: "/login" });
               }}
             >
-              <button
-                type="submit"
-                className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+              <SubmitButton
+                pendingText="Signing out…"
+                className="shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
               >
                 Sign out
-              </button>
+              </SubmitButton>
             </form>
           </div>
         )}

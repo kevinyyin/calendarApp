@@ -4,6 +4,7 @@ import { and, eq, or } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { respondToFriendRequestAction } from "./actions";
 import { FriendRequestForm } from "./FriendRequestForm";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function FriendsPage() {
   const session = await auth();
@@ -55,22 +56,22 @@ export default async function FriendsPage() {
                   <form action={respondToFriendRequestAction}>
                     <input type="hidden" name="friendshipId" value={req.id} />
                     <input type="hidden" name="accept" value="true" />
-                    <button
-                      type="submit"
-                      className="rounded-md bg-accent px-3 py-1 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90"
+                    <SubmitButton
+                      pendingText="Accepting…"
+                      className="rounded-md bg-accent px-3 py-1 text-sm font-medium text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
                     >
                       Accept
-                    </button>
+                    </SubmitButton>
                   </form>
                   <form action={respondToFriendRequestAction}>
                     <input type="hidden" name="friendshipId" value={req.id} />
                     <input type="hidden" name="accept" value="false" />
-                    <button
-                      type="submit"
-                      className="rounded-md bg-surface-muted px-3 py-1 text-sm font-medium text-muted transition-colors hover:text-foreground"
+                    <SubmitButton
+                      pendingText="Declining…"
+                      className="rounded-md bg-surface-muted px-3 py-1 text-sm font-medium text-muted transition-colors hover:text-foreground disabled:opacity-50"
                     >
                       Decline
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               </li>

@@ -1,4 +1,5 @@
 import { signIn } from "@/lib/auth";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export function ReconnectBanner() {
   return (
@@ -25,12 +26,12 @@ export function ReconnectBanner() {
             await signIn("google", { redirectTo: "/" });
           }}
         >
-          <button
-            type="submit"
-            className="shrink-0 rounded-md border border-warning-border px-3 py-1 text-sm font-medium text-warning transition-colors hover:bg-warning-border/40"
+          <SubmitButton
+            pendingText="Redirecting…"
+            className="shrink-0 rounded-md border border-warning-border px-3 py-1 text-sm font-medium text-warning transition-colors hover:bg-warning-border/40 disabled:opacity-50"
           >
             Reconnect
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </div>

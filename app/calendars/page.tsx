@@ -1,5 +1,6 @@
 import { getMyGoogleCalendars, getSharedCalendarIds, toggleShareCalendar } from "./actions";
 import { auth } from "@/lib/auth";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function CalendarsPage() {
   const session = await auth();
@@ -48,16 +49,16 @@ export default async function CalendarsPage() {
                   <input type="hidden" name="displayName" value={cal.summary} />
                   <input type="hidden" name="color" value={cal.backgroundColor} />
                   <input type="hidden" name="enable" value={(!isShared).toString()} />
-                  <button
-                    type="submit"
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  <SubmitButton
+                    pendingText={isShared ? "Unsharing…" : "Sharing…"}
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 ${
                       isShared
                         ? "bg-accent-muted text-accent hover:bg-accent-muted/70"
                         : "bg-accent text-accent-foreground hover:opacity-90"
                     }`}
                   >
                     {isShared ? "Sharing" : "Share"}
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             );
