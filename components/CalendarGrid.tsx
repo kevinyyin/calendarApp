@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatEventRange } from "@/lib/format-datetime";
 import { Badge } from "@/components/Badge";
 
@@ -206,12 +206,12 @@ function DayGrid({
         <div className="mb-4 flex border-b border-border pb-3">
           <div className="w-20 shrink-0" />
           {days.map((d) => (
-            <div
+            <h2
               key={dayKey(d)}
               className="flex-1 text-center text-sm font-semibold text-foreground"
             >
               {columnHeadingFormatter.format(d)}
-            </div>
+            </h2>
           ))}
         </div>
       )}
@@ -244,22 +244,25 @@ function DayGrid({
             const dayEvents = eventsOnDay(events, day);
             const { laneOf, laneCount } = assignLanes(dayEvents);
             return (
-              <div
+              <ul
                 key={dayKey(day)}
+                role="list"
+                aria-label={dayHeadingFormatter.format(day)}
                 className="relative flex-1 border-l border-border first:border-l-0"
               >
                 {dayEvents.map((event, i) => (
-                  <EventBlock
-                    key={event.id}
-                    event={event}
-                    band={band}
-                    lane={laneOf[i]}
-                    laneCount={laneCount}
-                    isOpen={openKey === event.id}
-                    onToggle={() => setOpenKey(openKey === event.id ? null : event.id)}
-                  />
+                  <li key={event.id}>
+                    <EventBlock
+                      event={event}
+                      band={band}
+                      lane={laneOf[i]}
+                      laneCount={laneCount}
+                      isOpen={openKey === event.id}
+                      onToggle={() => setOpenKey(openKey === event.id ? null : event.id)}
+                    />
+                  </li>
                 ))}
-              </div>
+              </ul>
             );
           })}
         </div>
@@ -278,6 +281,17 @@ export function CalendarGrid({ events }: { events: MergedEvent[] }) {
   // shift `weekDays` underneath an already-chosen `dayOffset`, and could
   // walk day navigation past the data actually fetched by app/page.tsx.
   const [today] = useState(() => addDays(new Date(), 0));
+
+  // Lets a keyboard user dismiss an open popover with Escape instead of
+  // having to tab back to the exact event button that opened it.
+  useEffect(() => {
+    if (openKey === null) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpenKey(null);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [openKey]);
 
   if (events.length === 0) {
     return (

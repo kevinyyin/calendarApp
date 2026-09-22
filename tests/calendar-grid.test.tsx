@@ -82,4 +82,26 @@ describe("CalendarGrid", () => {
     render(<CalendarGrid events={shortEvent} />);
     expect(screen.getByText("Quick sync")).toBeTruthy();
   });
+
+  it("closes an open popover on Escape", () => {
+    render(<CalendarGrid events={events} />);
+    fireEvent.click(screen.getByRole("button", { name: /Design review.*Alice/ }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("gives each week-mode column a heading and each day's events a list", () => {
+    render(<CalendarGrid events={events} />);
+    fireEvent.click(screen.getByRole("button", { name: "Week" }));
+
+    // e.g. "21 Mon" — a day-of-month, short-weekday column heading per day
+    // (exact ordering is locale-dependent, so just require both pieces).
+    const columnHeadings = screen.getAllByRole("heading", {
+      name: /\d{1,2}.*(Mon|Tue|Wed|Thu|Fri|Sat|Sun)|(Mon|Tue|Wed|Thu|Fri|Sat|Sun).*\d{1,2}/,
+    });
+    expect(columnHeadings).toHaveLength(7);
+    expect(screen.getAllByRole("list")).toHaveLength(7);
+  });
 });
