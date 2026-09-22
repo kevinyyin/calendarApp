@@ -48,8 +48,10 @@ export function addDays(d: Date, n: number): Date {
 
 const DEFAULT_BAND_START_HOUR = 7;
 const DEFAULT_BAND_END_HOUR = 23;
-const HOUR_HEIGHT_PX = 48;
-const MIN_EVENT_HEIGHT_PX = 20;
+// Sized for desktop, not a phone screen — a compact hour-by-hour grid reads
+// as cramped at this app's usual viewport widths.
+const HOUR_HEIGHT_PX = 72;
+const MIN_EVENT_HEIGHT_PX = 28;
 // Matches the 7-day range app/page.tsx fetches (now -> now+7days) — day nav
 // stays inside data we already have rather than triggering new fetches.
 const WINDOW_DAYS = 7;
@@ -132,11 +134,11 @@ function EventBlock({
   // The title always renders (truncated to one line) so a sighted user can
   // identify any event without clicking it open — only the secondary person
   // line is dropped when there isn't room for a second line of text.
-  const showPerson = height >= 32;
+  const showPerson = height >= 46;
 
   return (
     <div
-      className="absolute px-0.5"
+      className="absolute px-1"
       style={{ top, height, left: `${leftPct}%`, width: `${widthPct}%` }}
     >
       <button
@@ -147,27 +149,27 @@ function EventBlock({
         }}
         aria-label={`${event.title}, ${formatEventRange(event.startAt, event.endAt)}, ${event.personLabel}`}
         aria-expanded={isOpen}
-        className="h-full w-full overflow-hidden rounded-md border border-l-4 border-border bg-surface px-1.5 py-0.5 text-left shadow-[var(--shadow-soft)] transition hover:bg-surface-muted"
+        className="h-full w-full overflow-hidden rounded-lg border border-l-4 border-border bg-surface px-3 py-2 text-left shadow-[var(--shadow-soft)] transition hover:bg-surface-muted"
         style={{ borderLeftColor: event.color }}
       >
-        <span className="block truncate text-xs font-medium text-foreground">
+        <span className="block truncate text-sm font-medium text-foreground">
           {event.title}
         </span>
         {showPerson && (
-          <span className="block truncate text-xs text-muted">{event.personLabel}</span>
+          <span className="mt-0.5 block truncate text-xs text-muted">{event.personLabel}</span>
         )}
       </button>
       {isOpen && (
         <div
           role="dialog"
           onClick={(e) => e.stopPropagation()}
-          className="absolute left-1/2 top-full z-10 mt-1 w-56 -translate-x-1/2 rounded-xl border border-border bg-surface p-3 shadow-[var(--shadow-lifted)]"
+          className="absolute left-1/2 top-full z-10 mt-2 w-64 -translate-x-1/2 rounded-xl border border-border bg-surface p-4 shadow-[var(--shadow-lifted)]"
         >
-          <p className="text-sm font-medium text-foreground">{event.title}</p>
-          <p className="mt-1 text-xs tabular-nums text-muted">
+          <p className="text-base font-medium text-foreground">{event.title}</p>
+          <p className="mt-1.5 text-sm tabular-nums text-muted">
             {formatEventRange(event.startAt, event.endAt)}
           </p>
-          <Badge dotColor={event.color} className="mt-2">
+          <Badge dotColor={event.color} className="mt-3">
             {event.personLabel}
           </Badge>
         </div>
@@ -199,14 +201,14 @@ function DayGrid({
   const hourLabels = Array.from({ length: span }, (_, i) => band.start + i);
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-3">
+    <div className="rounded-2xl border border-border bg-surface p-6">
       {headings && (
-        <div className="mb-2 flex">
-          <div className="w-12 shrink-0" />
+        <div className="mb-4 flex border-b border-border pb-3">
+          <div className="w-20 shrink-0" />
           {days.map((d) => (
             <div
               key={dayKey(d)}
-              className="flex-1 text-center text-xs font-semibold text-foreground"
+              className="flex-1 text-center text-sm font-semibold text-foreground"
             >
               {columnHeadingFormatter.format(d)}
             </div>
@@ -214,12 +216,12 @@ function DayGrid({
         </div>
       )}
       <div className="flex">
-        <div className="w-12 shrink-0 text-right">
+        <div className="w-20 shrink-0 text-right">
           {hourLabels.map((h) => (
             <div
               key={h}
               style={{ height: HOUR_HEIGHT_PX }}
-              className="pr-2 text-xs tabular-nums text-muted"
+              className="pr-3 text-sm tabular-nums text-muted"
             >
               {hourLabelFormatter.format(new Date(2000, 0, 1, h))}
             </div>
@@ -293,9 +295,9 @@ export function CalendarGrid({ events }: { events: MergedEvent[] }) {
   const selectedDay = weekDays[dayOffset];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-h-9 items-center gap-2">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-h-11 items-center gap-3">
           {mode === "day" && (
             <>
               <button
@@ -303,11 +305,11 @@ export function CalendarGrid({ events }: { events: MergedEvent[] }) {
                 onClick={() => setDayOffset((d) => Math.max(0, d - 1))}
                 disabled={dayOffset === 0}
                 aria-label="Previous day"
-                className="rounded-full border border-border p-1.5 text-muted transition hover:bg-surface-muted disabled:opacity-30"
+                className="rounded-full border border-border p-2.5 text-lg leading-none text-muted transition hover:bg-surface-muted disabled:opacity-30"
               >
                 ‹
               </button>
-              <h2 className="text-sm font-semibold text-foreground">
+              <h2 className="text-lg font-semibold text-foreground">
                 {dayHeadingFormatter.format(selectedDay)}
               </h2>
               <button
@@ -315,7 +317,7 @@ export function CalendarGrid({ events }: { events: MergedEvent[] }) {
                 onClick={() => setDayOffset((d) => Math.min(WINDOW_DAYS - 1, d + 1))}
                 disabled={dayOffset === WINDOW_DAYS - 1}
                 aria-label="Next day"
-                className="rounded-full border border-border p-1.5 text-muted transition hover:bg-surface-muted disabled:opacity-30"
+                className="rounded-full border border-border p-2.5 text-lg leading-none text-muted transition hover:bg-surface-muted disabled:opacity-30"
               >
                 ›
               </button>
@@ -334,8 +336,8 @@ export function CalendarGrid({ events }: { events: MergedEvent[] }) {
               aria-pressed={mode === m}
               className={
                 mode === m
-                  ? "bg-accent px-3.5 py-1.5 font-medium text-accent-foreground"
-                  : "px-3.5 py-1.5 text-muted transition hover:bg-surface-muted"
+                  ? "bg-accent px-5 py-2 font-medium text-accent-foreground"
+                  : "px-5 py-2 text-muted transition hover:bg-surface-muted"
               }
             >
               {m === "day" ? "Day" : "Week"}

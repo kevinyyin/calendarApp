@@ -54,7 +54,7 @@ export default async function HomePage() {
   const hasFriends = friendsByUserId.size > 0;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
+    <main className="mx-auto w-full max-w-7xl px-6 py-16 sm:py-20">
       <div className="animate-rise-in">
         <div className="mb-12 flex flex-col gap-3 sm:mb-16">
           <Badge tone="outline" className="w-fit tabular-nums">
